@@ -1,0 +1,166 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-darkest: #f8f9fa;
+  --color-darker: #ffffff;
+  --color-dark: #f0f1f3;
+  --color-surface: #ffffff;
+  --color-surface-high: #f1f3f5;
+  --color-surface-higher: #e9ecef;
+  --color-primary: #6965db;
+  --color-primary-hover: #5b57d1;
+  --color-primary-active: #4b47c5;
+  --color-on-primary: #ffffff;
+  --color-text: #1e1e1e;
+  --color-text-muted: #5e5e5e;
+  --color-text-dim: #9d9d9d;
+  --color-border: #dee2e6;
+  --color-border-light: #e9ecef;
+  --color-danger: #e03131;
+  --color-danger-hover: #c92a2a;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-island: 0px 2px 8px rgba(0,0,0,0.08), 0px 0px 0px 1px rgba(0,0,0,0.06);
+  --shadow-modal: 0px 8px 32px rgba(0,0,0,0.15);
+  --font-family: 'Assistant', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body, #root {
+  width: 100%; height: 100%; overflow: hidden;
+  background: var(--color-darkest);
+  color: var(--color-text);
+  font-family: var(--font-family);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-surface-higher); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-dim); }
+
+/* Island-style panel */
+.island {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-island);
+}
+
+/* Tool button */
+.tool-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.15s ease;
+  position: relative;
+}
+.tool-btn:hover {
+  background: var(--color-surface-higher);
+  color: var(--color-text);
+}
+.tool-btn.active {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.tool-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Button styles */
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: var(--font-family);
+}
+.btn-primary:hover { background: var(--color-primary-hover); }
+.btn-primary:active { background: var(--color-primary-active); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-family);
+}
+.btn-ghost:hover { background: var(--color-surface-higher); border-color: var(--color-text-dim); }
+
+/* Input styles */
+.input-field {
+  background: var(--color-surface-high);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: var(--font-family);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.input-field:focus { border-color: var(--color-primary); }
+
+/* Tooltip base - actual tooltip shown via JS */
+.tooltip-hint {
+  background: var(--color-darkest);
+  color: var(--color-text);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  border: 1px solid var(--color-border);
+}
+
+/* Context menu */
+.context-menu {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-modal);
+  padding: 4px;
+  min-width: 180px;
+}
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--color-text);
+  font-size: 13px;
+  transition: background 0.1s;
+}
+.context-menu-item:hover { background: var(--color-surface-higher); }
+.context-menu-item.danger { color: var(--color-danger); }
+.context-menu-separator {
+  height: 1px;
+  background: var(--color-border-light);
+  margin: 4px 8px;
+}
