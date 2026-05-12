@@ -3,6 +3,7 @@ import { useAppStore } from '../stores/app'
 import { selectActiveElements, useSceneStore } from '../stores/scene'
 import { exportToPng, exportToSvg } from '../core/export'
 import { openMdrFile } from '../core/mdr'
+import { useT } from '../i18n'
 import { ToolType } from '../types'
 
 export function TopBar() {
@@ -11,8 +12,10 @@ export function TopBar() {
 
   const activeTool = useAppStore((s) => s.activeTool)
   const toolLocked = useAppStore((s) => s.toolLocked)
+  const language = useAppStore((s) => s.language)
   const setTool = useAppStore((s) => s.setTool)
   const setToolLocked = useAppStore((s) => s.setToolLocked)
+  const setLanguage = useAppStore((s) => s.setLanguage)
   const setViewMode = useAppStore((s) => s.setViewMode)
   const setCamera = useAppStore((s) => s.setCamera)
   const clearSelection = useAppStore((s) => s.clearSelection)
@@ -26,6 +29,7 @@ export function TopBar() {
   const pushHistory = useSceneStore((s) => s.pushHistory)
   const activeFile = useSceneStore((s) => s.files.find((f) => f.id === s.activeFileId) || null)
   const elements = useSceneStore(selectActiveElements)
+  const t = useT()
 
   useEffect(() => {
     const close = (e: MouseEvent) => {
@@ -36,15 +40,15 @@ export function TopBar() {
   }, [menuOpen])
 
   const tools: { type: ToolType; label: string; shortcut: string }[] = [
-    { type: 'select', label: 'Select', shortcut: 'V' },
-    { type: 'rectangle', label: 'Rectangle', shortcut: 'R' },
-    { type: 'diamond', label: 'Diamond', shortcut: 'D' },
-    { type: 'ellipse', label: 'Ellipse', shortcut: 'E' },
-    { type: 'arrow', label: 'Arrow', shortcut: 'A' },
-    { type: 'line', label: 'Line', shortcut: 'L' },
-    { type: 'freedraw', label: 'Draw', shortcut: 'P' },
-    { type: 'text', label: 'Text', shortcut: 'T' },
-    { type: 'image', label: 'Image', shortcut: 'I' },
+    { type: 'select', label: t('select'), shortcut: 'V' },
+    { type: 'rectangle', label: t('rectangle'), shortcut: 'R' },
+    { type: 'diamond', label: t('diamond'), shortcut: 'D' },
+    { type: 'ellipse', label: t('ellipse'), shortcut: 'E' },
+    { type: 'arrow', label: t('arrow'), shortcut: 'A' },
+    { type: 'line', label: t('line'), shortcut: 'L' },
+    { type: 'freedraw', label: t('freedraw'), shortcut: 'P' },
+    { type: 'text', label: t('text'), shortcut: 'T' },
+    { type: 'image', label: t('image'), shortcut: 'I' },
   ]
 
   const handleSaveMdr = async () => {
@@ -62,7 +66,7 @@ export function TopBar() {
   }
 
   const handleOpenMdr = async () => {
-    const file = await openMdrFile()
+    const file = await openMdrFile(t('openFailed'))
     setMenuOpen(false)
     if (!file) return
     importFile(file)
@@ -74,7 +78,7 @@ export function TopBar() {
     <div className="h-12 bg-[var(--color-dark)] border-b border-[var(--color-border-light)] flex items-center px-3 gap-2 select-none z-50">
       {/* Main Menu */}
       <div className="relative" ref={menuRef}>
-        <button onClick={() => setMenuOpen(!menuOpen)} className="tool-btn" title="Menu">
+        <button onClick={() => setMenuOpen(!menuOpen)} className="tool-btn" title={t('menu')}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M3 12h18M3 6h18M3 18h18" />
           </svg>
@@ -83,48 +87,48 @@ export function TopBar() {
           <div className="absolute top-11 left-0 context-menu z-50">
             <div className="context-menu-item" onClick={() => { createFile(); setViewMode('editor'); setMenuOpen(false) }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
-              New Canvas
+              {t('newCanvas')}
             </div>
             <div className="context-menu-item" onClick={handleOpenMdr}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 20h16V8l-4-4H4z"/><path d="M14 4v5h5"/><path d="M8 14h8"/></svg>
-              Open Canvas
+              {t('openCanvas')}
             </div>
             <div className="context-menu-item" onClick={handleSaveMdr}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
-              Save to...
+              {t('saveTo')}
             </div>
             <div className="context-menu-item danger" onClick={() => {
               setMenuOpen(false)
               if (elements.length === 0) return
-              const confirmed = window.confirm('Reset current canvas? This will remove all elements from this canvas.')
+              const confirmed = window.confirm(t('resetConfirm'))
               if (!confirmed) return
               pushHistory()
               setElements([])
               clearSelection()
             }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
-              Reset Canvas
+              {t('resetCanvas')}
             </div>
             <div className="context-menu-separator" />
             <div className="context-menu-item" onClick={() => { exportToPng(elements); setMenuOpen(false) }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-              Export PNG
+              {t('exportPng')}
             </div>
             <div className="context-menu-item" onClick={() => { exportToSvg(elements); setMenuOpen(false) }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-              Export SVG
+              {t('exportSvg')}
             </div>
             <div className="context-menu-separator" />
             <div className="context-menu-item" onClick={() => { setViewMode('welcome'); setMenuOpen(false) }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-              Go to Home
+              {t('goHome')}
             </div>
           </div>
         )}
       </div>
 
       {/* Title */}
-      <span className="text-sm font-semibold text-[var(--color-text-muted)] tracking-wide ml-1">Modraw</span>
+      <span className="text-sm font-semibold text-[var(--color-text-muted)] tracking-wide ml-1">{t('appName')}</span>
 
       <div className="flex-1" />
 
@@ -133,7 +137,7 @@ export function TopBar() {
         <button
           onClick={() => setToolLocked(!toolLocked)}
           className={`tool-btn ${toolLocked ? 'active' : ''}`}
-          title={toolLocked ? 'Tool locked: keep current tool after drawing' : 'Tool unlocked: return to Select after drawing'}
+          title={toolLocked ? t('toolLocked') : t('toolUnlocked')}
         >
           <LockIcon locked={toolLocked} />
         </button>
@@ -152,22 +156,31 @@ export function TopBar() {
       <div className="flex-1" />
 
       {/* Undo / Redo */}
-      <button onClick={undo} className="tool-btn" title="Undo (Ctrl+Z)">
+      <button onClick={undo} className="tool-btn" title={`${t('undo')} (Ctrl+Z)`}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M3 7v6h6" /><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13" />
         </svg>
       </button>
-      <button onClick={redo} className="tool-btn" title="Redo (Ctrl+Shift+Z)">
+      <button onClick={redo} className="tool-btn" title={`${t('redo')} (Ctrl+Shift+Z)`}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M21 7v6h-6" /><path d="M3 17a9 9 0 019-9 9 9 0 016 2.3L21 13" />
         </svg>
       </button>
 
       {/* Zoom controls */}
+      <select
+        value={language}
+        onChange={(e) => setLanguage(e.target.value as 'en' | 'zh-CN')}
+        className="input-field h-9 py-0 text-xs"
+        title={t('language')}
+      >
+        <option value="en">{t('english')}</option>
+        <option value="zh-CN">{t('simplifiedChinese')}</option>
+      </select>
       <div className="flex items-center gap-0.5 ml-1">
-        <button onClick={() => setCamera({ zoom: Math.max(0.1, camera.zoom - 0.1) })} className="tool-btn text-xs font-bold" title="Zoom Out">&minus;</button>
+        <button onClick={() => setCamera({ zoom: Math.max(0.1, camera.zoom - 0.1) })} className="tool-btn text-xs font-bold" title={t('zoomOut')}>&minus;</button>
         <span className="text-xs text-[var(--color-text-muted)] w-12 text-center tabular-nums">{Math.round(camera.zoom * 100)}%</span>
-        <button onClick={() => setCamera({ zoom: Math.min(10, camera.zoom + 0.1) })} className="tool-btn text-xs font-bold" title="Zoom In">+</button>
+        <button onClick={() => setCamera({ zoom: Math.min(10, camera.zoom + 0.1) })} className="tool-btn text-xs font-bold" title={t('zoomIn')}>+</button>
       </div>
     </div>
   )

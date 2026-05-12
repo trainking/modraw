@@ -4,6 +4,7 @@ import { selectActiveElements, useSceneStore } from '../stores/scene'
 import { renderStaticScene, renderInteractiveScene } from '../core/renderer'
 import { screenToScene } from '../utils/geometry'
 import { hitTest, hitTestHandle } from '../core/hitTest'
+import { useT } from '../i18n'
 import { Element } from '../types'
 import { generateId } from '../utils/id'
 import { getTextElementSize } from '../utils/text'
@@ -53,6 +54,7 @@ export function Canvas() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; sceneX: number; sceneY: number } | null>(null)
   const [editingTextEl, setEditingTextEl] = useState<Element | null>(null)
   const [editTextValue, setEditTextValue] = useState('')
+  const t = useT()
 
   const effectiveTool = spaceHeld ? 'hand' : activeTool
 
@@ -465,7 +467,7 @@ export function Canvas() {
                 closeContextMenu()
               }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                Edit Text
+                {t('editText')}
               </div>
               <div className="context-menu-separator" />
             </>
@@ -478,14 +480,14 @@ export function Canvas() {
                 closeContextMenu()
               }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
-                Add Point
+                {t('addPoint')}
               </div>
               <div className="context-menu-separator" />
             </>
           )}
           <div className="context-menu-item" onClick={() => { deleteElements(selectedIds); clearSelection(); closeContextMenu() }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-            Delete
+            {t('delete')}
           </div>
           <div className="context-menu-item" onClick={() => {
             const selected = elements.filter((el) => selectedIds.includes(el.id))
@@ -498,19 +500,19 @@ export function Canvas() {
             closeContextMenu()
           }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-            Duplicate
+            {t('duplicate')}
           </div>
           <div className="context-menu-separator" />
           <div className="context-menu-item" onClick={() => { const el = elements.find((e) => e.id === selectedIds[0]); if (el) { pushHistory(); updateElement(el.id, { locked: !el.locked }) }; closeContextMenu() }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-            Toggle Lock
+            {t('toggleLock')}
           </div>
         </div>
       )})()}
       {editingTextEl && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/30" style={{ zIndex: 200 }} onClick={() => setEditingTextEl(null)}>
           <div className="island p-4 flex flex-col gap-3 w-80" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-sm font-semibold text-[var(--color-text)]">Edit Text</h3>
+            <h3 className="text-sm font-semibold text-[var(--color-text)]">{t('editText')}</h3>
             <textarea
               value={editTextValue}
               onChange={(e) => setEditTextValue(e.target.value)}
@@ -528,8 +530,8 @@ export function Canvas() {
               }}
             />
             <div className="flex gap-2 justify-end">
-              <button className="btn-ghost text-xs" onClick={() => setEditingTextEl(null)}>Cancel</button>
-              <button className="btn-primary text-xs" onClick={() => { pushHistory(); updateElement(editingTextEl.id, { text: editTextValue, ...getTextElementSize(editTextValue, (editingTextEl as any).fontSize || currentFontSize) } as any); setEditingTextEl(null) }}>Save</button>
+              <button className="btn-ghost text-xs" onClick={() => setEditingTextEl(null)}>{t('cancel')}</button>
+              <button className="btn-primary text-xs" onClick={() => { pushHistory(); updateElement(editingTextEl.id, { text: editTextValue, ...getTextElementSize(editTextValue, (editingTextEl as any).fontSize || currentFontSize) } as any); setEditingTextEl(null) }}>{t('save')}</button>
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { useSceneStore } from '../stores/scene'
 import { useAppStore } from '../stores/app'
 import { openMdrFile } from '../core/mdr'
+import { useT } from '../i18n'
 
 export function WelcomeScreen() {
   const files = useSceneStore((s) => s.files)
@@ -9,6 +10,7 @@ export function WelcomeScreen() {
   const setActiveFile = useSceneStore((s) => s.setActiveFile)
   const deleteFile = useSceneStore((s) => s.deleteFile)
   const setViewMode = useAppStore((s) => s.setViewMode)
+  const t = useT()
 
   const handleNew = () => {
     createFile()
@@ -21,7 +23,7 @@ export function WelcomeScreen() {
   }
 
   const handleOpenMdr = async () => {
-    const file = await openMdrFile()
+    const file = await openMdrFile(t('openFailed'))
     if (!file) return
     importFile(file)
     setViewMode('editor')
@@ -38,22 +40,22 @@ export function WelcomeScreen() {
         <div className="w-16 h-16 rounded-2xl bg-[var(--color-primary)] flex items-center justify-center text-[var(--color-on-primary)] text-3xl font-bold mb-2 shadow-lg">
           M
         </div>
-        <h1 className="text-2xl font-bold text-[var(--color-text)] tracking-tight">Modraw</h1>
-        <p className="text-sm text-[var(--color-text-muted)]">Hand-drawn style whiteboard</p>
+        <h1 className="text-2xl font-bold text-[var(--color-text)] tracking-tight">{t('appName')}</h1>
+        <p className="text-sm text-[var(--color-text-muted)]">{t('tagline')}</p>
       </div>
 
       <div className="flex flex-col gap-3 items-center">
         <button onClick={handleNew} className="btn-primary text-base px-8 py-3 rounded-lg">
-          New Canvas
+          {t('newCanvas')}
         </button>
         <button onClick={handleOpenMdr} className="btn-ghost text-base px-8 py-3 rounded-lg">
-          Open Canvas
+          {t('openCanvas')}
         </button>
 
         {files.length > 0 && (
           <div className="mt-6 w-80">
             <h2 className="text-xs font-semibold text-[var(--color-text-dim)] uppercase tracking-wider mb-3 px-1">
-              Recent Files
+              {t('recentFiles')}
             </h2>
             <div className="flex flex-col gap-1">
               {files.map((file) => (
@@ -65,13 +67,13 @@ export function WelcomeScreen() {
                   <div className="flex flex-col">
                     <span className="text-sm text-[var(--color-text)]">{file.name}</span>
                     <span className="text-xs text-[var(--color-text-dim)]">
-                      {new Date(file.updatedAt).toLocaleDateString()} - {file.elements.length} elements
+                      {new Date(file.updatedAt).toLocaleDateString()} - {file.elements.length} {t('elements')}
                     </span>
                   </div>
                   <button
                     onClick={(e) => handleDelete(e, file.id)}
                     className="opacity-0 group-hover:opacity-100 text-[var(--color-text-dim)] hover:text-[var(--color-danger)] transition-all p-1"
-                    title="Delete"
+                    title={t('delete')}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
@@ -85,7 +87,7 @@ export function WelcomeScreen() {
       </div>
 
       <p className="mt-12 text-xs text-[var(--color-text-dim)]">
-        Press <kbd className="px-1.5 py-0.5 rounded bg-[var(--color-surface-high)] text-[var(--color-text-muted)] text-xs">Ctrl+N</kbd> to create a new canvas
+        {t('pressCreate')} <kbd className="px-1.5 py-0.5 rounded bg-[var(--color-surface-high)] text-[var(--color-text-muted)] text-xs">Ctrl+N</kbd> {t('toCreateCanvas')}
       </p>
     </div>
   )

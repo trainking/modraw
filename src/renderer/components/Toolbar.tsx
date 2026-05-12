@@ -1,19 +1,6 @@
 import { useAppStore } from '../stores/app'
+import { useT } from '../i18n'
 import { ToolType } from '../types'
-
-const tools: { type: ToolType; label: string; shortcut: string }[] = [
-  { type: 'select', label: 'Select', shortcut: 'V' },
-  { type: 'rectangle', label: 'Rectangle', shortcut: 'R' },
-  { type: 'diamond', label: 'Diamond', shortcut: 'D' },
-  { type: 'ellipse', label: 'Ellipse', shortcut: 'E' },
-  { type: 'arrow', label: 'Arrow', shortcut: 'A' },
-  { type: 'line', label: 'Line', shortcut: 'L' },
-  { type: 'freedraw', label: 'Draw', shortcut: 'P' },
-  { type: 'text', label: 'Text', shortcut: 'T' },
-  { type: 'image', label: 'Image', shortcut: 'I' },
-  { type: 'eraser', label: 'Eraser', shortcut: 'X' },
-  { type: 'hand', label: 'Hand', shortcut: 'H' },
-]
 
 function ToolIcon({ type }: { type: ToolType }) {
   switch (type) {
@@ -81,6 +68,21 @@ export function Toolbar() {
   const toolLocked = useAppStore((s) => s.toolLocked)
   const setTool = useAppStore((s) => s.setTool)
   const setToolLocked = useAppStore((s) => s.setToolLocked)
+  const t = useT()
+
+  const tools: { type: ToolType; label: string; shortcut: string }[] = [
+    { type: 'select', label: t('select'), shortcut: 'V' },
+    { type: 'rectangle', label: t('rectangle'), shortcut: 'R' },
+    { type: 'diamond', label: t('diamond'), shortcut: 'D' },
+    { type: 'ellipse', label: t('ellipse'), shortcut: 'E' },
+    { type: 'arrow', label: t('arrow'), shortcut: 'A' },
+    { type: 'line', label: t('line'), shortcut: 'L' },
+    { type: 'freedraw', label: t('freedraw'), shortcut: 'P' },
+    { type: 'text', label: t('text'), shortcut: 'T' },
+    { type: 'image', label: t('image'), shortcut: 'I' },
+    { type: 'eraser', label: t('eraser'), shortcut: 'X' },
+    { type: 'hand', label: t('hand'), shortcut: 'H' },
+  ]
 
   return (
     <div className="py-2 px-1.5 flex flex-col gap-1 items-center select-none z-40">
@@ -88,7 +90,7 @@ export function Toolbar() {
         <button
           onClick={() => setToolLocked(!toolLocked)}
           className={`tool-btn ${toolLocked ? 'active' : ''}`}
-          title={toolLocked ? 'Tool locked: keep current tool after drawing' : 'Tool unlocked: return to Select after drawing'}
+          title={toolLocked ? t('toolLocked') : t('toolUnlocked')}
         >
           <LockIcon locked={toolLocked} />
         </button>

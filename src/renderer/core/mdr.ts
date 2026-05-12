@@ -22,7 +22,7 @@ export function normalizeMdrFile(data: unknown, filePath: string): SceneFile {
   }
 }
 
-export async function openMdrFile(): Promise<SceneFile | null> {
+export async function openMdrFile(openFailedMessage = 'Unable to open this .mdr file. The file may be damaged or unsupported.'): Promise<SceneFile | null> {
   if (!window.electronAPI) return null
   const result = await window.electronAPI.openMdr()
   if (result.canceled) return null
@@ -30,7 +30,7 @@ export async function openMdrFile(): Promise<SceneFile | null> {
   try {
     return normalizeMdrFile(JSON.parse(result.content), result.filePath)
   } catch {
-    window.alert('Unable to open this .mdr file. The file may be damaged or unsupported.')
+    window.alert(openFailedMessage)
     return null
   }
 }

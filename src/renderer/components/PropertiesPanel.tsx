@@ -1,15 +1,12 @@
+import type { ReactNode } from 'react'
 import { useAppStore } from '../stores/app'
 import { selectActiveElements, useSceneStore } from '../stores/scene'
+import { useT } from '../i18n'
 import { Element } from '../types'
 import { getTextElementSize } from '../utils/text'
 
 const STROKE_COLORS = ['#1e1e1e', '#e03131', '#2f9e44', '#1971c2', '#f08c00']
 const BG_COLORS = ['transparent', '#ffffff', '#ffc9c9', '#b2f2bb', '#a5d8ff', '#ffec99', '#f8f9fa']
-const FILL_STYLES: { value: Element['fillStyle']; label: string }[] = [
-  { value: 'hachure', label: 'Hachure' },
-  { value: 'cross-hatch', label: 'Cross' },
-  { value: 'solid', label: 'Solid' },
-]
 const STROKE_WIDTHS = [1, 2, 4]
 const ROUGHNESS_LEVELS = [0, 1, 2]
 const ROUNDNESS_LEVELS = [0, 12]
@@ -21,6 +18,13 @@ export function PropertiesPanel() {
   const setElements = useSceneStore((s) => s.setElements)
   const pushHistory = useSceneStore((s) => s.pushHistory)
   const setCurrentItemProp = useAppStore((s) => s.setCurrentItemProp)
+  const t = useT()
+
+  const fillStyles: { value: Element['fillStyle']; label: string }[] = [
+    { value: 'hachure', label: t('hachure') },
+    { value: 'cross-hatch', label: t('crossHatch') },
+    { value: 'solid', label: t('solid') },
+  ]
 
   const el = selectedIds.length === 1 ? elements.find((e) => e.id === selectedIds[0]) : null
   if (!el) return null
@@ -28,10 +32,6 @@ export function PropertiesPanel() {
   const update = (props: Partial<Element>, recordHistory = true) => {
     if (recordHistory) pushHistory()
     updateElement(el.id, props)
-  }
-
-  const updateText = (text: string, fontSize = (el as any).fontSize || 20, recordHistory = true) => {
-    update({ text, ...getTextElementSize(text, fontSize) } as any, recordHistory)
   }
 
   const moveLayer = (action: 'back' | 'backward' | 'forward' | 'front') => {
@@ -49,23 +49,109 @@ export function PropertiesPanel() {
     setElements(next)
   }
 
+  const layerSection = (
+    <PanelSection label={t('layer')}>
+      <IconButtonRow>
+        <IconButton title={t('sendToBack')} onClick={() => moveLayer('back')}><LayerIcon action="back" /></IconButton>
+        <IconButton title={t('sendBackward')} onClick={() => moveLayer('backward')}><LayerIcon action="backward" /></IconButton>
+        <IconButton title={t('bringForward')} onClick={() => moveLayer('forward')}><LayerIcon action="forward" /></IconButton>
+        <IconButton title={t('bringToFront')} onClick={() => moveLayer('front')}><LayerIcon action="front" /></IconButton>
+      </IconButtonRow>
+    </PanelSection>
+  )
+
+  const opacitySection = (
+    <PanelSection label={t('opacity')}>
+      <div className="flex flex-col gap-1">
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={el.opacity}
+          onPointerDown={() => pushHistory()}
+          onChange={(e) => update({ opacity: Number(e.target.value) }, false)}
+          className="w-full accent-[var(--color-primary)]"
+        />
+        <div className="flex justify-between text-[11px] text-[var(--color-text-muted)]">
+          <span>0</span>
+          <span>100</span>
+        </div>
+      </div>
+    </PanelSection>
+  )
+
+  const strokeColorSection = (
+    <PanelSection label={t('stroke')}>
+      <div className="flex gap-1.5 flex-wrap">
+        {STROKE_COLORS.map((color) => (
+          <ColorButton
+            key={color}
+            color={color}
+            selected={el.strokeColor === color}
+            onClick={() => { update({ strokeColor: color }); setCurrentItemProp('currentItemStrokeColor', color) }}
+          />
+        ))}
+      </div>
+    </PanelSection>
+  )
+
+  const strokeWidthSection = (
+    <PanelSection label={t('strokeWidth')}>
+      <IconButtonRow>
+        {STROKE_WIDTHS.map((width) => (
+          <IconButton
+            key={width}
+            selected={el.strokeWidth === width}
+            title={`${width}px`}
+            onClick={() => { update({ strokeWidth: width }); setCurrentItemProp('currentItemStrokeWidth', width) }}
+          >
+            <LineIcon width={width} />
+          </IconButton>
+        ))}
+      </IconButtonRow>
+    </PanelSection>
+  )
+
+  const borderStyleSection = (
+    <PanelSection label={t('borderStyle')}>
+      <IconButtonRow>
+        {(['solid', 'dashed', 'dotted'] as const).map((style) => (
+          <IconButton
+            key={style}
+            selected={el.strokeStyle === style}
+            title={t(style)}
+            onClick={() => { update({ strokeStyle: style }); setCurrentItemProp('currentItemStrokeStyle', style) }}
+          >
+            <BorderStyleIcon style={style} />
+          </IconButton>
+        ))}
+      </IconButtonRow>
+    </PanelSection>
+  )
+
+  const roughnessSection = (
+    <PanelSection label={t('lineStyle')}>
+      <IconButtonRow>
+        {ROUGHNESS_LEVELS.map((roughness) => (
+          <IconButton
+            key={roughness}
+            selected={el.roughness === roughness}
+            title={`${t('roughness')} ${roughness}`}
+            onClick={() => { update({ roughness }); setCurrentItemProp('currentItemRoughness', roughness) }}
+          >
+            <RoughnessIcon roughness={roughness} />
+          </IconButton>
+        ))}
+      </IconButtonRow>
+    </PanelSection>
+  )
+
   if (el.type === 'rectangle' || el.type === 'diamond' || el.type === 'ellipse') {
     return (
-      <div className="w-[204px] island p-3 flex flex-col gap-3 text-sm select-none overflow-y-auto z-50 max-h-[calc(100vh-96px)]">
-        <PanelSection label="描边">
-          <div className="flex gap-1.5 flex-wrap">
-            {STROKE_COLORS.map((color) => (
-              <ColorButton
-                key={color}
-                color={color}
-                selected={el.strokeColor === color}
-                onClick={() => { update({ strokeColor: color }); setCurrentItemProp('currentItemStrokeColor', color) }}
-              />
-            ))}
-          </div>
-        </PanelSection>
-
-        <PanelSection label="背景">
+      <PanelShell>
+        {strokeColorSection}
+        <PanelSection label={t('background')}>
           <div className="flex gap-1.5 flex-wrap">
             {BG_COLORS.map((color) => (
               <ColorButton
@@ -77,10 +163,9 @@ export function PropertiesPanel() {
             ))}
           </div>
         </PanelSection>
-
-        <PanelSection label="填充">
+        <PanelSection label={t('fill')}>
           <IconButtonRow>
-            {FILL_STYLES.map((style) => (
+            {fillStyles.map((style) => (
               <IconButton
                 key={style.value}
                 selected={el.fillStyle === style.value}
@@ -92,60 +177,17 @@ export function PropertiesPanel() {
             ))}
           </IconButtonRow>
         </PanelSection>
-
-        <PanelSection label="描边宽度">
-          <IconButtonRow>
-            {STROKE_WIDTHS.map((width) => (
-              <IconButton
-                key={width}
-                selected={el.strokeWidth === width}
-                title={`${width}px`}
-                onClick={() => { update({ strokeWidth: width }); setCurrentItemProp('currentItemStrokeWidth', width) }}
-              >
-                <LineIcon width={width} />
-              </IconButton>
-            ))}
-          </IconButtonRow>
-        </PanelSection>
-
-        <PanelSection label="边框样式">
-          <IconButtonRow>
-            {(['solid', 'dashed', 'dotted'] as const).map((style) => (
-              <IconButton
-                key={style}
-                selected={el.strokeStyle === style}
-                title={style}
-                onClick={() => { update({ strokeStyle: style }); setCurrentItemProp('currentItemStrokeStyle', style) }}
-              >
-                <BorderStyleIcon style={style} />
-              </IconButton>
-            ))}
-          </IconButtonRow>
-        </PanelSection>
-
-        <PanelSection label="线条风格">
-          <IconButtonRow>
-            {ROUGHNESS_LEVELS.map((roughness) => (
-              <IconButton
-                key={roughness}
-                selected={el.roughness === roughness}
-                title={`roughness ${roughness}`}
-                onClick={() => { update({ roughness }); setCurrentItemProp('currentItemRoughness', roughness) }}
-              >
-                <RoughnessIcon roughness={roughness} />
-              </IconButton>
-            ))}
-          </IconButtonRow>
-        </PanelSection>
-
+        {strokeWidthSection}
+        {borderStyleSection}
+        {roughnessSection}
         {el.type !== 'ellipse' && (
-          <PanelSection label="边角">
+          <PanelSection label={t('corners')}>
             <IconButtonRow>
               {ROUNDNESS_LEVELS.map((roundness) => (
                 <IconButton
                   key={roundness}
                   selected={(el.roundness || 0) === roundness}
-                  title={roundness === 0 ? 'sharp' : 'rounded'}
+                  title={roundness === 0 ? t('sharp') : t('rounded')}
                   onClick={() => update({ roundness } as Partial<Element>)}
                 >
                   <CornerIcon rounded={roundness > 0} />
@@ -154,107 +196,27 @@ export function PropertiesPanel() {
             </IconButtonRow>
           </PanelSection>
         )}
-
-        <PanelSection label="透明度">
-          <div className="flex flex-col gap-1">
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={el.opacity}
-              onPointerDown={() => pushHistory()}
-              onChange={(e) => update({ opacity: Number(e.target.value) }, false)}
-              className="w-full accent-[var(--color-primary)]"
-            />
-            <div className="flex justify-between text-[11px] text-[var(--color-text-muted)]">
-              <span>0</span>
-              <span>100</span>
-            </div>
-          </div>
-        </PanelSection>
-
-        <PanelSection label="图层">
-          <IconButtonRow>
-            <IconButton title="置于底层" onClick={() => moveLayer('back')}><LayerIcon action="back" /></IconButton>
-            <IconButton title="下移一层" onClick={() => moveLayer('backward')}><LayerIcon action="backward" /></IconButton>
-            <IconButton title="上移一层" onClick={() => moveLayer('forward')}><LayerIcon action="forward" /></IconButton>
-            <IconButton title="置于顶层" onClick={() => moveLayer('front')}><LayerIcon action="front" /></IconButton>
-          </IconButtonRow>
-        </PanelSection>
-      </div>
+        {opacitySection}
+        {layerSection}
+      </PanelShell>
     )
   }
 
   if (el.type === 'arrow') {
     const arrow = el as any
     return (
-      <div className="w-[204px] island p-3 flex flex-col gap-3 text-sm select-none overflow-y-auto z-50 max-h-[calc(100vh-96px)]">
-        <PanelSection label="描边">
-          <div className="flex gap-1.5 flex-wrap">
-            {STROKE_COLORS.map((color) => (
-              <ColorButton
-                key={color}
-                color={color}
-                selected={el.strokeColor === color}
-                onClick={() => { update({ strokeColor: color }); setCurrentItemProp('currentItemStrokeColor', color) }}
-              />
-            ))}
-          </div>
-        </PanelSection>
-
-        <PanelSection label="描边宽度">
-          <IconButtonRow>
-            {STROKE_WIDTHS.map((width) => (
-              <IconButton
-                key={width}
-                selected={el.strokeWidth === width}
-                title={`${width}px`}
-                onClick={() => { update({ strokeWidth: width }); setCurrentItemProp('currentItemStrokeWidth', width) }}
-              >
-                <LineIcon width={width} />
-              </IconButton>
-            ))}
-          </IconButtonRow>
-        </PanelSection>
-
-        <PanelSection label="边框样式">
-          <IconButtonRow>
-            {(['solid', 'dashed', 'dotted'] as const).map((style) => (
-              <IconButton
-                key={style}
-                selected={el.strokeStyle === style}
-                title={style}
-                onClick={() => { update({ strokeStyle: style }); setCurrentItemProp('currentItemStrokeStyle', style) }}
-              >
-                <BorderStyleIcon style={style} />
-              </IconButton>
-            ))}
-          </IconButtonRow>
-        </PanelSection>
-
-        <PanelSection label="线条风格">
-          <IconButtonRow>
-            {ROUGHNESS_LEVELS.map((roughness) => (
-              <IconButton
-                key={roughness}
-                selected={el.roughness === roughness}
-                title={`roughness ${roughness}`}
-                onClick={() => { update({ roughness }); setCurrentItemProp('currentItemRoughness', roughness) }}
-              >
-                <RoughnessIcon roughness={roughness} />
-              </IconButton>
-            ))}
-          </IconButtonRow>
-        </PanelSection>
-
-        <PanelSection label="箭头类型">
+      <PanelShell>
+        {strokeColorSection}
+        {strokeWidthSection}
+        {borderStyleSection}
+        {roughnessSection}
+        <PanelSection label={t('arrowType')}>
           <IconButtonRow>
             {(['arrow', 'triangle', 'bar'] as const).map((type) => (
               <IconButton
                 key={type}
                 selected={(arrow.endArrowhead || 'arrow') === type}
-                title={type}
+                title={type === 'arrow' ? t('arrow') : t(type)}
                 onClick={() => update({ endArrowhead: type } as Partial<Element>)}
               >
                 <ArrowHeadIcon type={type} />
@@ -262,14 +224,13 @@ export function PropertiesPanel() {
             ))}
           </IconButtonRow>
         </PanelSection>
-
-        <PanelSection label="端点">
+        <PanelSection label={t('endpoint')}>
           <IconButtonRow>
             {(['none', 'arrow'] as const).map((type) => (
               <IconButton
                 key={type}
                 selected={(arrow.startArrowhead || 'none') === type}
-                title={type}
+                title={type === 'none' ? t('none') : t('arrow')}
                 onClick={() => update({ startArrowhead: type } as Partial<Element>)}
               >
                 <EndpointIcon type={type} />
@@ -277,127 +238,22 @@ export function PropertiesPanel() {
             ))}
           </IconButtonRow>
         </PanelSection>
-
-        <PanelSection label="透明度">
-          <div className="flex flex-col gap-1">
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={el.opacity}
-              onPointerDown={() => pushHistory()}
-              onChange={(e) => update({ opacity: Number(e.target.value) }, false)}
-              className="w-full accent-[var(--color-primary)]"
-            />
-            <div className="flex justify-between text-[11px] text-[var(--color-text-muted)]">
-              <span>0</span>
-              <span>100</span>
-            </div>
-          </div>
-        </PanelSection>
-
-        <PanelSection label="图层">
-          <IconButtonRow>
-            <IconButton title="置于底层" onClick={() => moveLayer('back')}><LayerIcon action="back" /></IconButton>
-            <IconButton title="下移一层" onClick={() => moveLayer('backward')}><LayerIcon action="backward" /></IconButton>
-            <IconButton title="上移一层" onClick={() => moveLayer('forward')}><LayerIcon action="forward" /></IconButton>
-            <IconButton title="置于顶层" onClick={() => moveLayer('front')}><LayerIcon action="front" /></IconButton>
-          </IconButtonRow>
-        </PanelSection>
-      </div>
+        {opacitySection}
+        {layerSection}
+      </PanelShell>
     )
   }
 
   if (el.type === 'line' || el.type === 'freedraw') {
     return (
-      <div className="w-[204px] island p-3 flex flex-col gap-3 text-sm select-none overflow-y-auto z-50 max-h-[calc(100vh-96px)]">
-        <PanelSection label="描边">
-          <div className="flex gap-1.5 flex-wrap">
-            {STROKE_COLORS.map((color) => (
-              <ColorButton
-                key={color}
-                color={color}
-                selected={el.strokeColor === color}
-                onClick={() => { update({ strokeColor: color }); setCurrentItemProp('currentItemStrokeColor', color) }}
-              />
-            ))}
-          </div>
-        </PanelSection>
-
-        <PanelSection label="描边宽度">
-          <IconButtonRow>
-            {STROKE_WIDTHS.map((width) => (
-              <IconButton
-                key={width}
-                selected={el.strokeWidth === width}
-                title={`${width}px`}
-                onClick={() => { update({ strokeWidth: width }); setCurrentItemProp('currentItemStrokeWidth', width) }}
-              >
-                <LineIcon width={width} />
-              </IconButton>
-            ))}
-          </IconButtonRow>
-        </PanelSection>
-
-        <PanelSection label="边框样式">
-          <IconButtonRow>
-            {(['solid', 'dashed', 'dotted'] as const).map((style) => (
-              <IconButton
-                key={style}
-                selected={el.strokeStyle === style}
-                title={style}
-                onClick={() => { update({ strokeStyle: style }); setCurrentItemProp('currentItemStrokeStyle', style) }}
-              >
-                <BorderStyleIcon style={style} />
-              </IconButton>
-            ))}
-          </IconButtonRow>
-        </PanelSection>
-
-        <PanelSection label="线条风格">
-          <IconButtonRow>
-            {ROUGHNESS_LEVELS.map((roughness) => (
-              <IconButton
-                key={roughness}
-                selected={el.roughness === roughness}
-                title={`roughness ${roughness}`}
-                onClick={() => { update({ roughness }); setCurrentItemProp('currentItemRoughness', roughness) }}
-              >
-                <RoughnessIcon roughness={roughness} />
-              </IconButton>
-            ))}
-          </IconButtonRow>
-        </PanelSection>
-
-        <PanelSection label="透明度">
-          <div className="flex flex-col gap-1">
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={el.opacity}
-              onPointerDown={() => pushHistory()}
-              onChange={(e) => update({ opacity: Number(e.target.value) }, false)}
-              className="w-full accent-[var(--color-primary)]"
-            />
-            <div className="flex justify-between text-[11px] text-[var(--color-text-muted)]">
-              <span>0</span>
-              <span>100</span>
-            </div>
-          </div>
-        </PanelSection>
-
-        <PanelSection label="图层">
-          <IconButtonRow>
-            <IconButton title="置于底层" onClick={() => moveLayer('back')}><LayerIcon action="back" /></IconButton>
-            <IconButton title="下移一层" onClick={() => moveLayer('backward')}><LayerIcon action="backward" /></IconButton>
-            <IconButton title="上移一层" onClick={() => moveLayer('forward')}><LayerIcon action="forward" /></IconButton>
-            <IconButton title="置于顶层" onClick={() => moveLayer('front')}><LayerIcon action="front" /></IconButton>
-          </IconButtonRow>
-        </PanelSection>
-      </div>
+      <PanelShell>
+        {strokeColorSection}
+        {strokeWidthSection}
+        {borderStyleSection}
+        {roughnessSection}
+        {opacitySection}
+        {layerSection}
+      </PanelShell>
     )
   }
 
@@ -417,54 +273,41 @@ export function PropertiesPanel() {
     }
 
     return (
-      <div className="w-[204px] island p-3 flex flex-col gap-3 text-sm select-none overflow-y-auto z-50 max-h-[calc(100vh-96px)]">
-        <PanelSection label="描边">
-          <div className="flex gap-1.5 flex-wrap">
-            {STROKE_COLORS.map((color) => (
-              <ColorButton
-                key={color}
-                color={color}
-                selected={el.strokeColor === color}
-                onClick={() => { update({ strokeColor: color }); setCurrentItemProp('currentItemStrokeColor', color) }}
-              />
-            ))}
-          </div>
-        </PanelSection>
-
-        <PanelSection label="字体">
+      <PanelShell>
+        {strokeColorSection}
+        <PanelSection label={t('font')}>
           <IconButtonRow>
             <IconButton
               selected={(textEl.fontStyle || 'normal') === 'italic'}
-              title="italic"
+              title={t('italic')}
               onClick={() => update({ fontStyle: textEl.fontStyle === 'italic' ? 'normal' : 'italic' } as Partial<Element>)}
             >
               <FontIcon type="italic" />
             </IconButton>
             <IconButton
               selected={(textEl.fontWeight || 'normal') === 'bold'}
-              title="bold"
+              title={t('bold')}
               onClick={() => update({ fontWeight: textEl.fontWeight === 'bold' ? 'normal' : 'bold' } as Partial<Element>)}
             >
               <FontIcon type="bold" />
             </IconButton>
             <IconButton
               selected={(textEl.fontFamily || '').includes('monospace')}
-              title="monospace"
+              title={t('monospace')}
               onClick={() => update({ fontFamily: (textEl.fontFamily || '').includes('monospace') ? 'Assistant, sans-serif' : 'monospace' } as Partial<Element>)}
             >
               <FontIcon type="code" />
             </IconButton>
             <IconButton
               selected={(textEl.fontFamily || '').includes('serif')}
-              title="serif"
+              title={t('serif')}
               onClick={() => update({ fontFamily: (textEl.fontFamily || '').includes('serif') ? 'Assistant, sans-serif' : 'Georgia, serif' } as Partial<Element>)}
             >
               <FontIcon type="serif" />
             </IconButton>
           </IconButtonRow>
         </PanelSection>
-
-        <PanelSection label="字体大小">
+        <PanelSection label={t('fontSize')}>
           <IconButtonRow>
             {fontSizeOptions.map((option) => (
               <IconButton
@@ -478,14 +321,13 @@ export function PropertiesPanel() {
             ))}
           </IconButtonRow>
         </PanelSection>
-
-        <PanelSection label="文本对齐">
+        <PanelSection label={t('textAlign')}>
           <IconButtonRow>
             {(['left', 'center', 'right'] as const).map((align) => (
               <IconButton
                 key={align}
                 selected={(textEl.textAlign || 'left') === align}
-                title={align}
+                title={t(align)}
                 onClick={() => update({ textAlign: align } as Partial<Element>)}
               >
                 <AlignIcon align={align} />
@@ -493,169 +335,31 @@ export function PropertiesPanel() {
             ))}
           </IconButtonRow>
         </PanelSection>
-
-        <PanelSection label="透明度">
-          <div className="flex flex-col gap-1">
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={el.opacity}
-              onPointerDown={() => pushHistory()}
-              onChange={(e) => update({ opacity: Number(e.target.value) }, false)}
-              className="w-full accent-[var(--color-primary)]"
-            />
-            <div className="flex justify-between text-[11px] text-[var(--color-text-muted)]">
-              <span>0</span>
-              <span>100</span>
-            </div>
-          </div>
-        </PanelSection>
-
-        <PanelSection label="图层">
-          <IconButtonRow>
-            <IconButton title="置于底层" onClick={() => moveLayer('back')}><LayerIcon action="back" /></IconButton>
-            <IconButton title="下移一层" onClick={() => moveLayer('backward')}><LayerIcon action="backward" /></IconButton>
-            <IconButton title="上移一层" onClick={() => moveLayer('forward')}><LayerIcon action="forward" /></IconButton>
-            <IconButton title="置于顶层" onClick={() => moveLayer('front')}><LayerIcon action="front" /></IconButton>
-          </IconButtonRow>
-        </PanelSection>
-      </div>
+        {opacitySection}
+        {layerSection}
+      </PanelShell>
     )
   }
 
   return (
-    <div className="w-56 island p-3 flex flex-col gap-4 text-sm select-none overflow-y-auto z-50">
-      <h3 className="text-[var(--color-text-dim)] text-xs font-semibold uppercase tracking-wider">Properties</h3>
+    <PanelShell wide>
+      <h3 className="text-[var(--color-text-dim)] text-xs font-semibold uppercase tracking-wider">{t('properties')}</h3>
+      {strokeColorSection}
+      {strokeWidthSection}
+      {opacitySection}
+    </PanelShell>
+  )
+}
 
-      {/* Stroke Color */}
-      <div>
-        <label className="text-[var(--color-text-dim)] text-xs block mb-1.5">Stroke</label>
-        <div className="flex gap-1 flex-wrap">
-          {STROKE_COLORS.map((c) => (
-            <button
-              key={c}
-              onClick={() => { update({ strokeColor: c }); setCurrentItemProp('currentItemStrokeColor', c) }}
-              className={`w-6 h-6 rounded border-2 transition-all ${
-                el.strokeColor === c ? 'border-[var(--color-primary)] scale-110' : 'border-transparent hover:scale-105'
-              }`}
-              style={{ backgroundColor: c }}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Background */}
-      <div>
-        <label className="text-[var(--color-text-dim)] text-xs block mb-1.5">Fill</label>
-        <div className="flex gap-1 flex-wrap">
-          {BG_COLORS.map((c) => (
-            <button
-              key={c}
-              onClick={() => { update({ backgroundColor: c }); setCurrentItemProp('currentItemBackgroundColor', c) }}
-              className={`w-6 h-6 rounded border-2 transition-all ${
-                el.backgroundColor === c ? 'border-[var(--color-primary)] scale-110' : 'border-transparent hover:scale-105'
-              }`}
-              style={{
-                backgroundColor: c === 'transparent' ? '#555' : c,
-                backgroundImage: c === 'transparent' ? 'linear-gradient(45deg, #777 25%, transparent 25%, transparent 75%, #777 75%, #777), linear-gradient(45deg, #777 25%, transparent 25%, transparent 75%, #777 75%, #777)' : undefined,
-                backgroundSize: c === 'transparent' ? '8px 8px' : undefined,
-                backgroundPosition: c === 'transparent' ? '0 0, 4px 4px' : undefined,
-              }}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Fill Style */}
-      <div>
-        <label className="text-[var(--color-text-dim)] text-xs block mb-1.5">Fill Style</label>
-        <div className="flex gap-1">
-          {FILL_STYLES.map((fs) => (
-            <button
-              key={fs.value}
-              onClick={() => { update({ fillStyle: fs.value }); setCurrentItemProp('currentItemFillStyle', fs.value) }}
-              className={`flex-1 h-6 rounded text-xs transition-colors ${
-                el.fillStyle === fs.value ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]' : 'bg-[var(--color-surface-high)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-higher)]'
-              }`}
-            >
-              {fs.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Stroke Width */}
-      <div>
-        <label className="text-[var(--color-text-dim)] text-xs block mb-1.5">Width</label>
-        <div className="flex gap-1">
-          {STROKE_WIDTHS.map((w) => (
-            <button
-              key={w}
-              onClick={() => { update({ strokeWidth: w }); setCurrentItemProp('currentItemStrokeWidth', w) }}
-              className={`flex-1 h-6 rounded text-xs transition-colors ${
-                el.strokeWidth === w ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]' : 'bg-[var(--color-surface-high)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-higher)]'
-              }`}
-            >
-              {w}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Stroke Style */}
-      <div>
-        <label className="text-[var(--color-text-dim)] text-xs block mb-1.5">Stroke Style</label>
-        <div className="flex gap-1">
-          {(['solid', 'dashed', 'dotted'] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => { update({ strokeStyle: s }); setCurrentItemProp('currentItemStrokeStyle', s) }}
-              className={`flex-1 h-6 rounded text-xs capitalize transition-colors ${
-                el.strokeStyle === s ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]' : 'bg-[var(--color-surface-high)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-higher)]'
-              }`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Roughness */}
-      <div>
-        <label className="text-[var(--color-text-dim)] text-xs block mb-1.5">Roughness</label>
-        <div className="flex gap-1">
-          {ROUGHNESS_LEVELS.map((r) => (
-            <button
-              key={r}
-              onClick={() => { update({ roughness: r }); setCurrentItemProp('currentItemRoughness', r) }}
-              className={`flex-1 h-6 rounded text-xs transition-colors ${
-                el.roughness === r ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]' : 'bg-[var(--color-surface-high)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-higher)]'
-              }`}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Opacity */}
-      <div>
-        <label className="text-[var(--color-text-dim)] text-xs block mb-1.5">Opacity: {el.opacity}%</label>
-        <input
-          type="range" min={10} max={100} step={10}
-          value={el.opacity}
-          onPointerDown={() => pushHistory()}
-          onChange={(e) => update({ opacity: Number(e.target.value) }, false)}
-          className="w-full accent-[var(--color-primary)]"
-        />
-      </div>
+function PanelShell({ children, wide = false }: { children: ReactNode; wide?: boolean }) {
+  return (
+    <div className={`${wide ? 'w-56' : 'w-[204px]'} island p-3 flex flex-col gap-3 text-sm select-none overflow-y-auto z-50 max-h-[calc(100vh-96px)]`}>
+      {children}
     </div>
   )
 }
 
-function PanelSection({ label, children }: { label: string; children: React.ReactNode }) {
+function PanelSection({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-xs text-[var(--color-text)]">{label}</label>
@@ -664,7 +368,7 @@ function PanelSection({ label, children }: { label: string; children: React.Reac
   )
 }
 
-function IconButtonRow({ children }: { children: React.ReactNode }) {
+function IconButtonRow({ children }: { children: ReactNode }) {
   return <div className="flex gap-2">{children}</div>
 }
 
@@ -677,7 +381,7 @@ function IconButton({
   selected?: boolean
   title: string
   onClick: () => void
-  children: React.ReactNode
+  children: ReactNode
 }) {
   return (
     <button
@@ -826,12 +530,8 @@ function FontIcon({ type }: { type: 'italic' | 'bold' | 'code' | 'serif' }) {
       </svg>
     )
   }
-  if (type === 'code') {
-    return <span className="text-xs font-semibold">&lt;/&gt;</span>
-  }
-  if (type === 'serif') {
-    return <span className="font-serif text-lg leading-none">A</span>
-  }
+  if (type === 'code') return <span className="text-xs font-semibold">&lt;/&gt;</span>
+  if (type === 'serif') return <span className="font-serif text-lg leading-none">A</span>
   return <span className="text-sm font-semibold">A</span>
 }
 
