@@ -11,21 +11,21 @@ export function Footer() {
   const zoom = Math.round(camera.zoom * 100)
 
   const toolHints: Record<string, string> = {
-    select: 'Click to select · Drag to move · Shift+click to multi-select',
-    rectangle: 'Click and drag to draw rectangle · Hold Shift for square',
+    select: 'Click to select - Drag to move - Shift+click to multi-select',
+    rectangle: 'Click and drag to draw rectangle - Hold Shift for square',
     diamond: 'Click and drag to draw diamond',
-    ellipse: 'Click and drag to draw ellipse · Hold Shift for circle',
+    ellipse: 'Click and drag to draw ellipse - Hold Shift for circle',
     arrow: 'Click and drag to draw arrow',
-    line: 'Click and drag to draw line · Hold Shift for 15° angles',
+    line: 'Click and drag to draw line - Hold Shift for 15 degree angles',
     freedraw: 'Click and drag to draw freely',
     text: 'Click to place text',
     image: 'Click to place image or paste from clipboard',
     eraser: 'Click and drag over elements to delete',
-    hand: 'Click and drag to pan canvas · Scroll to zoom',
+    hand: 'Click and drag to pan canvas - Scroll to zoom',
   }
 
   const hint = selectedIds.length > 0
-    ? `${selectedIds.length} element${selectedIds.length > 1 ? 's' : ''} selected · Drag to move · Delete to remove`
+    ? `${selectedIds.length} element${selectedIds.length > 1 ? 's' : ''} selected - Drag to move - Delete to remove`
     : toolHints[activeTool] || ''
 
   return (

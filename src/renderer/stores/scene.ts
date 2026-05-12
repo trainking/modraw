@@ -19,7 +19,7 @@ interface SceneState {
   updateFile: (id: string, updates: Partial<SceneFile>) => void
   addElement: (el: Element) => void
   updateElement: (id: string, props: Partial<Element>) => void
-  deleteElements: (ids: string[]) => void
+  deleteElements: (ids: string[], recordHistory?: boolean) => void
   setElements: (elements: Element[]) => void
   pushHistory: () => void
   undo: () => void
@@ -96,12 +96,16 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       )
     })),
 
-  deleteElements: (ids) => {
-    get().pushHistory()
+  deleteElements: (ids, recordHistory = true) => {
+    const hasDeletableElement = get()
+      .getElements()
+      .some((el) => !el.locked && ids.includes(el.id))
+    if (!hasDeletableElement) return
+    if (recordHistory) get().pushHistory()
     set((s) => ({
       files: s.files.map((f) =>
         f.id === s.activeFileId
-          ? { ...f, elements: f.elements.filter((el) => !ids.includes(el.id)), updatedAt: Date.now() }
+          ? { ...f, elements: f.elements.filter((el) => el.locked || !ids.includes(el.id)), updatedAt: Date.now() }
           : f
       )
     }))

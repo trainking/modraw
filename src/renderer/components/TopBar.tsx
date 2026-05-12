@@ -9,7 +9,9 @@ export function TopBar() {
   const menuRef = useRef<HTMLDivElement>(null)
 
   const activeTool = useAppStore((s) => s.activeTool)
+  const toolLocked = useAppStore((s) => s.toolLocked)
   const setTool = useAppStore((s) => s.setTool)
+  const setToolLocked = useAppStore((s) => s.setToolLocked)
   const setViewMode = useAppStore((s) => s.setViewMode)
   const setCamera = useAppStore((s) => s.setCamera)
   const camera = useAppStore((s) => s.camera)
@@ -79,6 +81,13 @@ export function TopBar() {
 
       {/* ShapesSwitcher */}
       <div className="flex items-center gap-0.5 island px-1 py-1">
+        <button
+          onClick={() => setToolLocked(!toolLocked)}
+          className={`tool-btn ${toolLocked ? 'active' : ''}`}
+          title={toolLocked ? 'Tool locked: keep current tool after drawing' : 'Tool unlocked: return to Select after drawing'}
+        >
+          <LockIcon locked={toolLocked} />
+        </button>
         {tools.map((tool) => (
           <button
             key={tool.type}
@@ -112,6 +121,24 @@ export function TopBar() {
         <button onClick={() => setCamera({ zoom: Math.min(10, camera.zoom + 0.1) })} className="tool-btn text-xs font-bold" title="Zoom In">+</button>
       </div>
     </div>
+  )
+}
+
+function LockIcon({ locked }: { locked: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {locked ? (
+        <>
+          <rect x="5" y="11" width="14" height="10" rx="2" />
+          <path d="M8 11V7a4 4 0 018 0v4" />
+        </>
+      ) : (
+        <>
+          <rect x="5" y="11" width="14" height="10" rx="2" />
+          <path d="M8 11V7a4 4 0 017.5-2" />
+        </>
+      )}
+    </svg>
   )
 }
 

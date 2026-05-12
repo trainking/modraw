@@ -1,6 +1,7 @@
 import { useAppStore } from '../stores/app'
 import { useSceneStore } from '../stores/scene'
 import { Element } from '../types'
+import { getTextElementSize } from '../utils/text'
 
 const STROKE_COLORS = ['#1e1e1e', '#e03131', '#2f9e44', '#1971c2', '#f08c00', '#9c36b5', '#868e96']
 const BG_COLORS = ['transparent', '#ffffff', '#e03131', '#2f9e44', '#1971c2', '#f08c00', '#f1f3f5']
@@ -17,6 +18,7 @@ export function PropertiesPanel() {
   const selectedIds = useAppStore((s) => s.selectedIds)
   const getElements = useSceneStore((s) => s.getElements)
   const updateElement = useSceneStore((s) => s.updateElement)
+  const pushHistory = useSceneStore((s) => s.pushHistory)
   const setCurrentItemProp = useAppStore((s) => s.setCurrentItemProp)
   const currentStrokeColor = useAppStore((s) => s.currentItemStrokeColor)
   const currentBgColor = useAppStore((s) => s.currentItemBackgroundColor)
@@ -29,7 +31,14 @@ export function PropertiesPanel() {
   const el = selectedIds.length === 1 ? elements.find((e) => e.id === selectedIds[0]) : null
   if (!el) return null
 
-  const update = (props: Partial<Element>) => updateElement(el.id, props)
+  const update = (props: Partial<Element>, recordHistory = true) => {
+    if (recordHistory) pushHistory()
+    updateElement(el.id, props)
+  }
+
+  const updateText = (text: string, fontSize = (el as any).fontSize || 20, recordHistory = true) => {
+    update({ text, ...getTextElementSize(text, fontSize) } as any, recordHistory)
+  }
 
   return (
     <div className="w-56 island p-3 flex flex-col gap-4 text-sm select-none overflow-y-auto z-50">
@@ -153,7 +162,8 @@ export function PropertiesPanel() {
             <label className="text-[var(--color-text-dim)] text-xs block mb-1">Text</label>
             <textarea
               value={(el as any).text || ''}
-              onChange={(e) => update({ text: e.target.value } as any)}
+              onFocus={() => pushHistory()}
+              onChange={(e) => updateText(e.target.value, undefined, false)}
               className="input-field w-full resize-none"
               rows={2}
             />
@@ -163,7 +173,11 @@ export function PropertiesPanel() {
             <input
               type="number" min={8} max={200}
               value={(el as any).fontSize || 20}
-              onChange={(e) => update({ fontSize: Number(e.target.value) } as any)}
+              onFocus={() => pushHistory()}
+              onChange={(e) => {
+                const fontSize = Number(e.target.value)
+                update({ fontSize, ...getTextElementSize((el as any).text || '', fontSize) } as any, false)
+              }}
               className="input-field w-full"
             />
           </div>
@@ -176,7 +190,8 @@ export function PropertiesPanel() {
         <input
           type="range" min={10} max={100} step={10}
           value={el.opacity}
-          onChange={(e) => update({ opacity: Number(e.target.value) })}
+          onPointerDown={() => pushHistory()}
+          onChange={(e) => update({ opacity: Number(e.target.value) }, false)}
           className="w-full accent-[var(--color-primary)]"
         />
       </div>

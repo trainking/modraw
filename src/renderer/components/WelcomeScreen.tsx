@@ -53,7 +53,7 @@ export function WelcomeScreen() {
                   <div className="flex flex-col">
                     <span className="text-sm text-[var(--color-text)]">{file.name}</span>
                     <span className="text-xs text-[var(--color-text-dim)]">
-                      {new Date(file.updatedAt).toLocaleDateString()} · {file.elements.length} elements
+                      {new Date(file.updatedAt).toLocaleDateString()} - {file.elements.length} elements
                     </span>
                   </div>
                   <button

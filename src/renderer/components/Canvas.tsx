@@ -1,12 +1,12 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { useAppStore } from '../stores/app'
 import { useSceneStore } from '../stores/scene'
-import { renderStaticScene, renderInteractiveScene, renderElement } from '../core/renderer'
+import { renderStaticScene, renderInteractiveScene } from '../core/renderer'
 import { screenToScene } from '../utils/geometry'
 import { hitTest, hitTestHandle } from '../core/hitTest'
 import { Element } from '../types'
-import { MIN_ZOOM, MAX_ZOOM } from '../utils/constants'
 import { generateId } from '../utils/id'
+import { getTextElementSize } from '../utils/text'
 
 export function Canvas() {
   const staticCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -14,6 +14,7 @@ export function Canvas() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const activeTool = useAppStore((s) => s.activeTool)
+  const toolLocked = useAppStore((s) => s.toolLocked)
   const selectedIds = useAppStore((s) => s.selectedIds)
   const camera = useAppStore((s) => s.camera)
   const setTool = useAppStore((s) => s.setTool)
@@ -34,6 +35,7 @@ export function Canvas() {
   const addElement = useSceneStore((s) => s.addElement)
   const updateElement = useSceneStore((s) => s.updateElement)
   const deleteElements = useSceneStore((s) => s.deleteElements)
+  const setElements = useSceneStore((s) => s.setElements)
   const pushHistory = useSceneStore((s) => s.pushHistory)
   const undo = useSceneStore((s) => s.undo)
   const redo = useSceneStore((s) => s.redo)
@@ -48,8 +50,6 @@ export function Canvas() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [editingTextEl, setEditingTextEl] = useState<Element | null>(null)
   const [editTextValue, setEditTextValue] = useState('')
-
-  const gridSize = useAppStore((s) => s.gridSize)
 
   const elements = getElements()
   const effectiveTool = spaceHeld ? 'hand' : activeTool
@@ -138,7 +138,7 @@ export function Canvas() {
 
     if (effectiveTool === 'eraser') {
       const hit = hitTest(pos.x, pos.y, elements)
-      if (hit) { pushHistory(); deleteElements([hit.id]) }
+      if (hit && !hit.locked) deleteElements([hit.id])
       return
     }
 
@@ -149,7 +149,7 @@ export function Canvas() {
         if (selEl) {
           // Rotation handle check
           const rx = selEl.x + selEl.width / 2, ry = selEl.y - 28
-          if (Math.hypot(pos.x - rx, pos.y - ry) < 12) {
+          if (Math.hypot(pos.x - rx, pos.y - ry) < 12 && !selEl.locked) {
             pushHistory()
             setRotating({
               elId: selEl.id,
@@ -162,16 +162,22 @@ export function Canvas() {
           }
           // Resize handle check
           const handle = hitTestHandle(pos.x, pos.y, selEl)
-          if (handle) { pushHistory(); setResizing({ handle, sx: pos.x, sy: pos.y, el: { ...selEl } }); return }
+          if (handle && !selEl.locked) { pushHistory(); setResizing({ handle, sx: pos.x, sy: pos.y, el: cloneElement(selEl) }); return }
         }
       }
       // Hit test
       const hit = hitTest(pos.x, pos.y, elements)
       if (hit) {
-        const idsToMove = selectedIds.includes(hit.id) ? selectedIds : [hit.id]
+        if (hit.locked) {
+          setSelection([hit.id])
+          return
+        }
+        const idsToMove = (selectedIds.includes(hit.id) ? selectedIds : [hit.id])
+          .filter((id) => !elements.find((el) => el.id === id)?.locked)
+        if (idsToMove.length === 0) return
         if (!selectedIds.includes(hit.id)) setSelection([hit.id])
         pushHistory()
-        setMoving({ sx: pos.x, sy: pos.y, origins: new Map(idsToMove.map((id) => { const el = elements.find((e) => e.id === id)!; const pts = (el as any).points; return [id, { x: el.x, y: el.y, points: pts ? [...pts.map((p: [number,number]) => [...p] as [number,number])] : undefined }] })) })
+        setMoving({ sx: pos.x, sy: pos.y, origins: new Map(idsToMove.map((id) => { const el = elements.find((e) => e.id === id)!; const pts = (el as any).points; return [id, { x: el.x, y: el.y, points: pts ? clonePoints(pts) : undefined }] })) })
       } else {
         clearSelection()
         setDrawing({ type: 'selection', sx: pos.x, sy: pos.y, cx: pos.x, cy: pos.y })
@@ -188,8 +194,9 @@ export function Canvas() {
 
     if (effectiveTool === 'text') {
       clearSelection()
+      const size = getTextElementSize('Text', currentFontSize)
       const el: Element = {
-        id: generateId(), type: 'text', x: pos.x, y: pos.y, width: 120, height: 24,
+        id: generateId(), type: 'text', x: pos.x, y: pos.y, width: size.width, height: size.height,
         angle: 0, strokeColor: currentStrokeColor, backgroundColor: 'transparent',
         fillStyle: 'solid', strokeWidth: currentStrokeWidth, strokeStyle: 'solid',
         roughness: 0, opacity: currentOpacity, seed: Math.random() * 100000 | 0,
@@ -198,6 +205,7 @@ export function Canvas() {
       } as Element
       addElement(el)
       setSelection([el.id])
+      if (!toolLocked) setTool('select')
       return
     }
 
@@ -205,7 +213,12 @@ export function Canvas() {
       clearSelection()
       setDrawing({ type: effectiveTool, sx: pos.x, sy: pos.y, cx: pos.x, cy: pos.y })
     }
-  }, [effectiveTool, getScenePos, elements, selectedIds, camera, setSelection, clearSelection, pushHistory])
+  }, [
+    effectiveTool, getScenePos, elements, selectedIds, camera, setSelection, clearSelection,
+    pushHistory, deleteElements, addElement, currentFontSize, currentFontFamily,
+    currentStrokeColor, currentBgColor, currentFillStyle, currentStrokeWidth,
+    currentStrokeStyle, currentRoughness, currentOpacity, toolLocked, setTool
+  ])
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (panning) {
@@ -252,10 +265,11 @@ export function Canvas() {
       else if (effectiveTool === 'eraser') ic.style.cursor = 'pointer'
       else ic.style.cursor = 'crosshair'
     }
-  }, [panning, moving, resizing, drawing, getScenePos, camera, effectiveTool, spaceHeld, updateElement, setCamera])
+  }, [panning, moving, resizing, rotating, drawing, getScenePos, camera, effectiveTool, spaceHeld, updateElement, setCamera])
 
   const handleMouseUp = useCallback((_e: React.MouseEvent) => {
     if (drawing) {
+      let createdElement = false
       if (drawing.type === 'freedraw' && freedrawPts.length > 1) {
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
         for (const p of freedrawPts) { minX = Math.min(minX, p[0]); minY = Math.min(minY, p[1]); maxX = Math.max(maxX, p[0]); maxY = Math.max(maxY, p[1]) }
@@ -271,6 +285,7 @@ export function Canvas() {
         addElement(el)
         setSelection([el.id])
         setFreedrawPts([])
+        createdElement = true
       } else if (drawing.type === 'selection') {
         const x = Math.min(drawing.sx, drawing.cx), y = Math.min(drawing.sy, drawing.cy)
         const w = Math.abs(drawing.cx - drawing.sx), h = Math.abs(drawing.cy - drawing.sy)
@@ -284,21 +299,28 @@ export function Canvas() {
         if (w > 3 || h > 3) {
           const el = makeShapeElement(drawing.type, x, y, w, h, { currentStrokeColor, currentBgColor, currentFillStyle, currentStrokeWidth, currentStrokeStyle, currentRoughness, currentOpacity })
           addElement(el); setSelection([el.id])
+          createdElement = true
         }
       } else if (drawing.type === 'line' || drawing.type === 'arrow') {
         const w = Math.abs(drawing.cx - drawing.sx), h = Math.abs(drawing.cy - drawing.sy)
         if (w > 2 || h > 2) {
           const el = makeLinearElement(drawing.type as 'line' | 'arrow', drawing.sx, drawing.sy, drawing.cx, drawing.cy, { currentStrokeColor, currentStrokeWidth, currentStrokeStyle, currentRoughness, currentOpacity })
           addElement(el); setSelection([el.id])
+          createdElement = true
         }
       }
       setDrawing(null)
+      if (createdElement && !toolLocked) setTool('select')
     }
     setMoving(null)
     setResizing(null)
     setRotating(null)
     setPanning(null)
-  }, [drawing, freedrawPts, elements, addElement, setSelection])
+  }, [
+    drawing, freedrawPts, elements, addElement, setSelection, currentStrokeColor,
+    currentBgColor, currentFillStyle, currentStrokeWidth, currentStrokeStyle,
+    currentRoughness, currentOpacity, toolLocked, setTool
+  ])
 
   // Keyboard
   useEffect(() => {
@@ -310,7 +332,7 @@ export function Canvas() {
       // Tool shortcuts
       const map: Record<string, string> = { v:'select', r:'rectangle', d:'diamond', e:'ellipse', a:'arrow', l:'line', p:'freedraw', t:'text', i:'image', x:'eraser', h:'hand' }
       if (map[k]) { setTool(map[k] as any); return }
-      if (k === 'delete' || k === 'backspace') { const ids = useAppStore.getState().selectedIds; if (ids.length > 0) { pushHistory(); deleteElements(ids); clearSelection() } return }
+      if (k === 'delete' || k === 'backspace') { const ids = useAppStore.getState().selectedIds; if (ids.length > 0) { deleteElements(ids); clearSelection() } return }
       if (k === 'escape') { clearSelection(); return }
     }
     const up = (e: KeyboardEvent) => { if (e.key === ' ') setSpaceHeld(false) }
@@ -372,16 +394,25 @@ export function Canvas() {
               <div className="context-menu-separator" />
             </>
           )}
-          <div className="context-menu-item" onClick={() => { pushHistory(); deleteElements(selectedIds); clearSelection(); closeContextMenu() }}>
+          <div className="context-menu-item" onClick={() => { deleteElements(selectedIds); clearSelection(); closeContextMenu() }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
             Delete
           </div>
-          <div className="context-menu-item" onClick={() => { /* Duplicate */ closeContextMenu() }}>
+          <div className="context-menu-item" onClick={() => {
+            const selected = elements.filter((el) => selectedIds.includes(el.id))
+            if (selected.length > 0) {
+              pushHistory()
+              const copies = selected.map((el) => duplicateElement(el))
+              setElements([...getElements(), ...copies])
+              setSelection(copies.map((el) => el.id))
+            }
+            closeContextMenu()
+          }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
             Duplicate
           </div>
           <div className="context-menu-separator" />
-          <div className="context-menu-item" onClick={() => { const els = getElements(); const el = els.find((e) => e.id === selectedIds[0]); if (el) { updateElement(el.id, { locked: !el.locked }) }; closeContextMenu() }}>
+          <div className="context-menu-item" onClick={() => { const els = getElements(); const el = els.find((e) => e.id === selectedIds[0]); if (el) { pushHistory(); updateElement(el.id, { locked: !el.locked }) }; closeContextMenu() }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
             Toggle Lock
           </div>
@@ -401,14 +432,15 @@ export function Canvas() {
                 if (e.key === 'Escape') setEditingTextEl(null)
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()
-                  updateElement(editingTextEl.id, { text: editTextValue } as any)
+                  pushHistory()
+                  updateElement(editingTextEl.id, { text: editTextValue, ...getTextElementSize(editTextValue, (editingTextEl as any).fontSize || currentFontSize) } as any)
                   setEditingTextEl(null)
                 }
               }}
             />
             <div className="flex gap-2 justify-end">
               <button className="btn-ghost text-xs" onClick={() => setEditingTextEl(null)}>Cancel</button>
-              <button className="btn-primary text-xs" onClick={() => { updateElement(editingTextEl.id, { text: editTextValue } as any); setEditingTextEl(null) }}>Save</button>
+              <button className="btn-primary text-xs" onClick={() => { pushHistory(); updateElement(editingTextEl.id, { text: editTextValue, ...getTextElementSize(editTextValue, (editingTextEl as any).fontSize || currentFontSize) } as any); setEditingTextEl(null) }}>Save</button>
             </div>
           </div>
         </div>
@@ -422,6 +454,29 @@ export function Canvas() {
 interface DrawState { type: string; sx: number; sy: number; cx: number; cy: number }
 interface MoveState { sx: number; sy: number; origins: Map<string, { x: number; y: number; points?: [number, number][] }> }
 interface ResizeState { handle: string; sx: number; sy: number; el: Element }
+
+function clonePoints(points: [number, number][]): [number, number][] {
+  return points.map(([x, y]) => [x, y])
+}
+
+function cloneElement(el: Element): Element {
+  const clone = { ...el } as any
+  if (clone.points) clone.points = clonePoints(clone.points)
+  if (clone.groupIds) clone.groupIds = [...clone.groupIds]
+  if (clone.boundElements) clone.boundElements = clone.boundElements.map((item: any) => ({ ...item }))
+  return clone as Element
+}
+
+function duplicateElement(el: Element): Element {
+  const copy = cloneElement(el) as any
+  copy.id = generateId()
+  copy.x += 20
+  copy.y += 20
+  if (copy.points) {
+    copy.points = copy.points.map(([x, y]: [number, number]) => [x + 20, y + 20])
+  }
+  return copy as Element
+}
 
 function makeGhostElement(d: DrawState): Element {
   const x = Math.min(d.sx, d.cx), y = Math.min(d.sy, d.cy)
@@ -450,10 +505,6 @@ function makeLinearElement(type: 'line' | 'arrow', x1: number, y1: number, x2: n
     points: [[x1, y1], [x2, y2]], startArrowhead: 'none', endArrowhead: type === 'arrow' ? 'arrow' : 'none' } as Element
 }
 
-function snap(v: number, grid: number): number {
-  return Math.round(v / grid) * grid
-}
-
 function calcResize(handle: string, el: Element, dx: number, dy: number): Partial<Element> {
   const min = 5
   const r: any = {}
@@ -466,6 +517,21 @@ function calcResize(handle: string, el: Element, dx: number, dy: number): Partia
     case 'nw': r.x = el.x + dx; r.y = el.y + dy; r.width = Math.max(min, el.width - dx); r.height = Math.max(min, el.height - dy); break
     case 'n': r.y = el.y + dy; r.height = Math.max(min, el.height - dy); break
     case 'ne': r.y = el.y + dy; r.width = Math.max(min, el.width + dx); r.height = Math.max(min, el.height - dy); break
+  }
+  if (handle.includes('w') && r.width === min) r.x = el.x + el.width - min
+  if (handle.includes('n') && r.height === min) r.y = el.y + el.height - min
+  const points = (el as any).points as [number, number][] | undefined
+  if (points && (el.type === 'line' || el.type === 'arrow' || el.type === 'freedraw')) {
+    const nx = r.x ?? el.x
+    const ny = r.y ?? el.y
+    const nw = r.width ?? el.width
+    const nh = r.height ?? el.height
+    const sx = el.width === 0 ? 1 : nw / el.width
+    const sy = el.height === 0 ? 1 : nh / el.height
+    r.points = points.map(([px, py]) => [
+      nx + (px - el.x) * sx,
+      ny + (py - el.y) * sy
+    ])
   }
   return r
 }

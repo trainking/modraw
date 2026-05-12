@@ -230,7 +230,7 @@ export function renderSelectionBox(ctx: CanvasRenderingContext2D, el: Element) {
   ctx.strokeRect(x, y, w, h)
   ctx.setLineDash([])
 
-  const handles = [
+  const handles: [string, number, number][] = [
     ['nw', x, y], ['n', x + w / 2, y], ['ne', x + w, y],
     ['e', x + w, y + h / 2], ['se', x + w, y + h],
     ['s', x + w / 2, y + h], ['sw', x, y + h], ['w', x, y + h / 2]

@@ -72,28 +72,55 @@ function ToolIcon({ type }: { type: ToolType }) {
         <path d="M18 11V7a2 2 0 00-4 0v1M14 9V3a2 2 0 00-4 0v6M10 7V4a2 2 0 00-4 0v9l-3 3 2.8 2.8A5 5 0 008 20h4a6 6 0 006-6v-5" />
       </svg>
     )
-    default: return <span className="text-xs">{type[0].toUpperCase()}</span>
+    default: return null
   }
 }
 
 export function Toolbar() {
   const activeTool = useAppStore((s) => s.activeTool)
+  const toolLocked = useAppStore((s) => s.toolLocked)
   const setTool = useAppStore((s) => s.setTool)
+  const setToolLocked = useAppStore((s) => s.setToolLocked)
 
   return (
     <div className="py-2 px-1.5 flex flex-col gap-1 items-center select-none z-40">
       <div className="island py-1 px-1 flex flex-col gap-0.5">
+        <button
+          onClick={() => setToolLocked(!toolLocked)}
+          className={`tool-btn ${toolLocked ? 'active' : ''}`}
+          title={toolLocked ? 'Tool locked: keep current tool after drawing' : 'Tool unlocked: return to Select after drawing'}
+        >
+          <LockIcon locked={toolLocked} />
+        </button>
         {tools.map((tool) => (
           <button
             key={tool.type}
             onClick={() => setTool(tool.type)}
             className={`tool-btn ${activeTool === tool.type ? 'active' : ''}`}
-            title={`${tool.label} — ${tool.shortcut}`}
+            title={`${tool.label} (${tool.shortcut})`}
           >
             <ToolIcon type={tool.type} />
           </button>
         ))}
       </div>
     </div>
+  )
+}
+
+function LockIcon({ locked }: { locked: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {locked ? (
+        <>
+          <rect x="5" y="11" width="14" height="10" rx="2" />
+          <path d="M8 11V7a4 4 0 018 0v4" />
+        </>
+      ) : (
+        <>
+          <rect x="5" y="11" width="14" height="10" rx="2" />
+          <path d="M8 11V7a4 4 0 017.5-2" />
+        </>
+      )}
+    </svg>
   )
 }

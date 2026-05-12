@@ -28,24 +28,28 @@ export default function App() {
     const api = window.electronAPI
     if (!api) return
 
-    api.onMenuNew(() => {
-      useSceneStore.getState().createFile()
-      useAppStore.getState().setViewMode('editor')
-    })
-    api.onMenuZoomIn(() => {
-      const { zoom } = useAppStore.getState().camera
-      setCamera({ zoom: Math.min(zoom * 1.2, 10) })
-    })
-    api.onMenuZoomOut(() => {
-      const { zoom } = useAppStore.getState().camera
-      setCamera({ zoom: Math.max(zoom / 1.2, 0.1) })
-    })
-    api.onMenuZoomReset(() => setCamera({ zoom: 1, x: 0, y: 0 }))
-    api.onMenuUndo(() => useSceneStore.getState().undo())
-    api.onMenuRedo(() => useSceneStore.getState().redo())
-    api.onMenuExportPng(() => exportToPng(useSceneStore.getState().getElements()))
-    api.onMenuExportSvg(() => exportToSvg(useSceneStore.getState().getElements()))
-  }, [])
+    const disposers = [
+      api.onMenuNew(() => {
+        useSceneStore.getState().createFile()
+        useAppStore.getState().setViewMode('editor')
+      }),
+      api.onMenuZoomIn(() => {
+        const { zoom } = useAppStore.getState().camera
+        setCamera({ zoom: Math.min(zoom * 1.2, 10) })
+      }),
+      api.onMenuZoomOut(() => {
+        const { zoom } = useAppStore.getState().camera
+        setCamera({ zoom: Math.max(zoom / 1.2, 0.1) })
+      }),
+      api.onMenuZoomReset(() => setCamera({ zoom: 1, x: 0, y: 0 })),
+      api.onMenuUndo(() => useSceneStore.getState().undo()),
+      api.onMenuRedo(() => useSceneStore.getState().redo()),
+      api.onMenuExportPng(() => exportToPng(useSceneStore.getState().getElements())),
+      api.onMenuExportSvg(() => exportToSvg(useSceneStore.getState().getElements()))
+    ]
+
+    return () => disposers.forEach((dispose) => dispose())
+  }, [setCamera])
 
   if (viewMode === 'welcome') {
     return <WelcomeScreen />

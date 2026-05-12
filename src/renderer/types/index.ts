@@ -60,6 +60,7 @@ export interface Camera { x: number; y: number; zoom: number }
 
 export interface AppState {
   activeTool: ToolType
+  toolLocked: boolean
   selectedIds: string[]
   camera: Camera
   editingTextElementId: string | null
@@ -77,6 +78,7 @@ export interface AppState {
 
 export const DEFAULT_APP_STATE: AppState = {
   activeTool: 'select',
+  toolLocked: false,
   selectedIds: [],
   camera: { x: 0, y: 0, zoom: 1 },
   editingTextElementId: null,

@@ -5,6 +5,7 @@ interface AppStore extends AppState {
   viewMode: ViewMode
 
   setTool: (tool: ToolType) => void
+  setToolLocked: (locked: boolean) => void
   setSelection: (ids: string[]) => void
   clearSelection: () => void
   setCamera: (camera: Partial<Camera>) => void
@@ -19,6 +20,7 @@ export const useAppStore = create<AppStore>((set) => ({
   viewMode: 'welcome',
 
   setTool: (activeTool) => set({ activeTool }),
+  setToolLocked: (toolLocked) => set({ toolLocked }),
   setSelection: (selectedIds) => set({ selectedIds }),
   clearSelection: () => set({ selectedIds: [] }),
   setCamera: (camera) => set((s) => ({ camera: { ...s.camera, ...camera } })),
