@@ -214,12 +214,16 @@ export function renderElement(ctx: CanvasRenderingContext2D, el: Element) {
       break
     }
     case 'text': {
+      const textEl = el as any
       ctx.globalAlpha = alpha
-      ctx.font = `${(el as any).fontSize || 20}px ${(el as any).fontFamily || 'Assistant, sans-serif'}`
+      ctx.font = `${textEl.fontStyle || 'normal'} ${textEl.fontWeight || 'normal'} ${textEl.fontSize || 20}px ${textEl.fontFamily || 'Assistant, sans-serif'}`
       ctx.fillStyle = el.strokeColor
-      ctx.textAlign = (el as any).textAlign || 'left'
+      ctx.textAlign = textEl.textAlign || 'left'
       ctx.textBaseline = 'top'
-      ctx.fillText((el as any).text || '', el.x, el.y)
+      const lines = String(textEl.text || '').split(/\r?\n/)
+      const lineHeight = (textEl.fontSize || 20) * 1.25
+      const x = textEl.textAlign === 'center' ? el.x + el.width / 2 : textEl.textAlign === 'right' ? el.x + el.width : el.x
+      lines.forEach((line, index) => ctx.fillText(line, x, el.y + index * lineHeight))
       ctx.globalAlpha = 1
       break
     }

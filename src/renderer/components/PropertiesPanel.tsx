@@ -401,6 +401,130 @@ export function PropertiesPanel() {
     )
   }
 
+  if (el.type === 'text') {
+    const textEl = el as any
+    const fontSizeOptions = [
+      { label: 'S', value: 16 },
+      { label: 'M', value: 20 },
+      { label: 'L', value: 28 },
+      { label: 'XL', value: 36 },
+    ]
+
+    const updateTextStyle = (props: Record<string, unknown>) => {
+      const fontSize = Number(props.fontSize ?? textEl.fontSize ?? 20)
+      const text = textEl.text || ''
+      update({ ...props, ...getTextElementSize(text, fontSize) } as Partial<Element>)
+    }
+
+    return (
+      <div className="w-[204px] island p-3 flex flex-col gap-3 text-sm select-none overflow-y-auto z-50 max-h-[calc(100vh-96px)]">
+        <PanelSection label="描边">
+          <div className="flex gap-1.5 flex-wrap">
+            {STROKE_COLORS.map((color) => (
+              <ColorButton
+                key={color}
+                color={color}
+                selected={el.strokeColor === color}
+                onClick={() => { update({ strokeColor: color }); setCurrentItemProp('currentItemStrokeColor', color) }}
+              />
+            ))}
+          </div>
+        </PanelSection>
+
+        <PanelSection label="字体">
+          <IconButtonRow>
+            <IconButton
+              selected={(textEl.fontStyle || 'normal') === 'italic'}
+              title="italic"
+              onClick={() => update({ fontStyle: textEl.fontStyle === 'italic' ? 'normal' : 'italic' } as Partial<Element>)}
+            >
+              <FontIcon type="italic" />
+            </IconButton>
+            <IconButton
+              selected={(textEl.fontWeight || 'normal') === 'bold'}
+              title="bold"
+              onClick={() => update({ fontWeight: textEl.fontWeight === 'bold' ? 'normal' : 'bold' } as Partial<Element>)}
+            >
+              <FontIcon type="bold" />
+            </IconButton>
+            <IconButton
+              selected={(textEl.fontFamily || '').includes('monospace')}
+              title="monospace"
+              onClick={() => update({ fontFamily: (textEl.fontFamily || '').includes('monospace') ? 'Assistant, sans-serif' : 'monospace' } as Partial<Element>)}
+            >
+              <FontIcon type="code" />
+            </IconButton>
+            <IconButton
+              selected={(textEl.fontFamily || '').includes('serif')}
+              title="serif"
+              onClick={() => update({ fontFamily: (textEl.fontFamily || '').includes('serif') ? 'Assistant, sans-serif' : 'Georgia, serif' } as Partial<Element>)}
+            >
+              <FontIcon type="serif" />
+            </IconButton>
+          </IconButtonRow>
+        </PanelSection>
+
+        <PanelSection label="字体大小">
+          <IconButtonRow>
+            {fontSizeOptions.map((option) => (
+              <IconButton
+                key={option.label}
+                selected={(textEl.fontSize || 20) === option.value}
+                title={option.label}
+                onClick={() => updateTextStyle({ fontSize: option.value })}
+              >
+                <span className="text-sm">{option.label}</span>
+              </IconButton>
+            ))}
+          </IconButtonRow>
+        </PanelSection>
+
+        <PanelSection label="文本对齐">
+          <IconButtonRow>
+            {(['left', 'center', 'right'] as const).map((align) => (
+              <IconButton
+                key={align}
+                selected={(textEl.textAlign || 'left') === align}
+                title={align}
+                onClick={() => update({ textAlign: align } as Partial<Element>)}
+              >
+                <AlignIcon align={align} />
+              </IconButton>
+            ))}
+          </IconButtonRow>
+        </PanelSection>
+
+        <PanelSection label="透明度">
+          <div className="flex flex-col gap-1">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={el.opacity}
+              onPointerDown={() => pushHistory()}
+              onChange={(e) => update({ opacity: Number(e.target.value) }, false)}
+              className="w-full accent-[var(--color-primary)]"
+            />
+            <div className="flex justify-between text-[11px] text-[var(--color-text-muted)]">
+              <span>0</span>
+              <span>100</span>
+            </div>
+          </div>
+        </PanelSection>
+
+        <PanelSection label="图层">
+          <IconButtonRow>
+            <IconButton title="置于底层" onClick={() => moveLayer('back')}><LayerIcon action="back" /></IconButton>
+            <IconButton title="下移一层" onClick={() => moveLayer('backward')}><LayerIcon action="backward" /></IconButton>
+            <IconButton title="上移一层" onClick={() => moveLayer('forward')}><LayerIcon action="forward" /></IconButton>
+            <IconButton title="置于顶层" onClick={() => moveLayer('front')}><LayerIcon action="front" /></IconButton>
+          </IconButtonRow>
+        </PanelSection>
+      </div>
+    )
+  }
+
   return (
     <div className="w-56 island p-3 flex flex-col gap-4 text-sm select-none overflow-y-auto z-50">
       <h3 className="text-[var(--color-text-dim)] text-xs font-semibold uppercase tracking-wider">Properties</h3>
@@ -515,35 +639,6 @@ export function PropertiesPanel() {
           ))}
         </div>
       </div>
-
-      {/* Text props */}
-      {el.type === 'text' && (
-        <div className="flex flex-col gap-2">
-          <div>
-            <label className="text-[var(--color-text-dim)] text-xs block mb-1">Text</label>
-            <textarea
-              value={(el as any).text || ''}
-              onFocus={() => pushHistory()}
-              onChange={(e) => updateText(e.target.value, undefined, false)}
-              className="input-field w-full resize-none"
-              rows={2}
-            />
-          </div>
-          <div>
-            <label className="text-[var(--color-text-dim)] text-xs block mb-1">Font Size</label>
-            <input
-              type="number" min={8} max={200}
-              value={(el as any).fontSize || 20}
-              onFocus={() => pushHistory()}
-              onChange={(e) => {
-                const fontSize = Number(e.target.value)
-                update({ fontSize, ...getTextElementSize((el as any).text || '', fontSize) } as any, false)
-              }}
-              className="input-field w-full"
-            />
-          </div>
-        </div>
-      )}
 
       {/* Opacity */}
       <div>
@@ -717,6 +812,38 @@ function EndpointIcon({ type }: { type: 'none' | 'arrow' }) {
           <path d="M14 8l4 4-4 4" />
         </>
       )}
+    </svg>
+  )
+}
+
+function FontIcon({ type }: { type: 'italic' | 'bold' | 'code' | 'serif' }) {
+  if (type === 'italic') {
+    return (
+      <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+        <path d="M10 5h8" />
+        <path d="M6 19h8" />
+        <path d="M15 5l-4 14" />
+      </svg>
+    )
+  }
+  if (type === 'code') {
+    return <span className="text-xs font-semibold">&lt;/&gt;</span>
+  }
+  if (type === 'serif') {
+    return <span className="font-serif text-lg leading-none">A</span>
+  }
+  return <span className="text-sm font-semibold">A</span>
+}
+
+function AlignIcon({ align }: { align: 'left' | 'center' | 'right' }) {
+  const lines = align === 'left'
+    ? ['M5 7h12', 'M5 12h8', 'M5 17h12']
+    : align === 'center'
+      ? ['M6 7h12', 'M8 12h8', 'M6 17h12']
+      : ['M7 7h12', 'M11 12h8', 'M7 17h12']
+  return (
+    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      {lines.map((d) => <path key={d} d={d} />)}
     </svg>
   )
 }

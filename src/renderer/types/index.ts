@@ -43,6 +43,8 @@ export interface TextElement extends BaseElement {
   type: 'text'
   text: string
   fontSize: number; fontFamily: string
+  fontStyle?: 'normal' | 'italic'
+  fontWeight?: 'normal' | 'bold'
   textAlign: 'left' | 'center' | 'right'
   autoResize: boolean
 }
