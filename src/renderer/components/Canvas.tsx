@@ -436,7 +436,7 @@ export function Canvas() {
   const cursor = effectiveTool === 'hand' ? (panning ? 'grabbing' : 'grab') : effectiveTool === 'select' ? 'default' : 'crosshair'
 
   return (
-    <div ref={containerRef} className="flex-1 relative overflow-hidden bg-[var(--color-darkest)]">
+    <div ref={containerRef} className="w-full h-full flex-1 relative overflow-hidden bg-[var(--color-darkest)]">
       <input
         ref={imageInputRef}
         type="file"

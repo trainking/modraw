@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import { join } from 'path'
 import { readFile, writeFile } from 'fs/promises'
 
@@ -59,54 +59,8 @@ ipcMain.handle('file-open-mdr', async () => {
   return { canceled: false as const, filePath, content }
 })
 
-const menuTemplate: Electron.MenuItemConstructorOptions[] = [
-  {
-    label: 'File',
-    submenu: [
-      { label: 'New', accelerator: 'CmdOrCtrl+N', click: () => mainWindow?.webContents.send('menu-new') },
-      { type: 'separator' },
-      {
-        label: 'Export PNG',
-        accelerator: 'CmdOrCtrl+Shift+E',
-        click: () => mainWindow?.webContents.send('menu-export-png')
-      },
-      {
-        label: 'Export SVG',
-        accelerator: 'CmdOrCtrl+Alt+E',
-        click: () => mainWindow?.webContents.send('menu-export-svg')
-      },
-      { type: 'separator' },
-      { role: 'quit' }
-    ]
-  },
-  {
-    label: 'Edit',
-    submenu: [
-      { label: 'Undo', accelerator: 'CmdOrCtrl+Z', click: () => mainWindow?.webContents.send('menu-undo') },
-      { label: 'Redo', accelerator: 'CmdOrCtrl+Shift+Z', click: () => mainWindow?.webContents.send('menu-redo') },
-      { type: 'separator' },
-      { role: 'cut' },
-      { role: 'copy' },
-      { role: 'paste' },
-      { role: 'delete' },
-      { role: 'selectAll' }
-    ]
-  },
-  {
-    label: 'View',
-    submenu: [
-      { label: 'Zoom In', accelerator: 'CmdOrCtrl+=', click: () => mainWindow?.webContents.send('menu-zoom-in') },
-      { label: 'Zoom Out', accelerator: 'CmdOrCtrl+-', click: () => mainWindow?.webContents.send('menu-zoom-out') },
-      { label: 'Reset Zoom', accelerator: 'CmdOrCtrl+0', click: () => mainWindow?.webContents.send('menu-zoom-reset') },
-      { type: 'separator' },
-      { role: 'toggleDevTools' },
-      { role: 'togglefullscreen' }
-    ]
-  }
-]
-
 app.whenReady().then(() => {
-  Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate))
+  app.applicationMenu = null
   createWindow()
 
   app.on('activate', () => {

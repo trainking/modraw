@@ -17,12 +17,8 @@ export function TopBar() {
   const setToolLocked = useAppStore((s) => s.setToolLocked)
   const setLanguage = useAppStore((s) => s.setLanguage)
   const setViewMode = useAppStore((s) => s.setViewMode)
-  const setCamera = useAppStore((s) => s.setCamera)
   const clearSelection = useAppStore((s) => s.clearSelection)
-  const camera = useAppStore((s) => s.camera)
 
-  const undo = useSceneStore((s) => s.undo)
-  const redo = useSceneStore((s) => s.redo)
   const createFile = useSceneStore((s) => s.createFile)
   const importFile = useSceneStore((s) => s.importFile)
   const setElements = useSceneStore((s) => s.setElements)
@@ -75,14 +71,16 @@ export function TopBar() {
   }
 
   return (
-    <div className="h-12 bg-[var(--color-dark)] border-b border-[var(--color-border-light)] flex items-center px-3 gap-2 select-none z-50">
+    <div className="absolute inset-x-0 top-0 z-[100] select-none pointer-events-none">
       {/* Main Menu */}
-      <div className="relative" ref={menuRef}>
-        <button onClick={() => setMenuOpen(!menuOpen)} className="tool-btn" title={t('menu')}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M3 12h18M3 6h18M3 18h18" />
-          </svg>
-        </button>
+      <div className="absolute left-3 top-3 pointer-events-auto" ref={menuRef}>
+        <div className="island p-1">
+          <button onClick={() => setMenuOpen(!menuOpen)} className="tool-btn" title={t('menu')}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 12h18M3 6h18M3 18h18" />
+            </svg>
+          </button>
+        </div>
         {menuOpen && (
           <div className="absolute top-11 left-0 context-menu z-50">
             <div className="context-menu-item" onClick={() => { createFile(); setViewMode('editor'); setMenuOpen(false) }}>
@@ -119,6 +117,20 @@ export function TopBar() {
               {t('exportSvg')}
             </div>
             <div className="context-menu-separator" />
+            <div className="context-menu-item cursor-default" onClick={(e) => e.stopPropagation()}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 5h16"/><path d="M9 5c0 6 3 10 8 14"/><path d="M15 5c0 6-3 10-8 14"/><path d="M12 19h8"/><path d="M16 15l4 8"/></svg>
+              <span className="flex-1">{t('language')}</span>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as 'en' | 'zh-CN')}
+                className="input-field h-8 py-0 text-xs"
+                title={t('language')}
+              >
+                <option value="en">{t('english')}</option>
+                <option value="zh-CN">{t('simplifiedChinese')}</option>
+              </select>
+            </div>
+            <div className="context-menu-separator" />
             <div className="context-menu-item" onClick={() => { setViewMode('welcome'); setMenuOpen(false) }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
               {t('goHome')}
@@ -127,13 +139,8 @@ export function TopBar() {
         )}
       </div>
 
-      {/* Title */}
-      <span className="text-sm font-semibold text-[var(--color-text-muted)] tracking-wide ml-1">{t('appName')}</span>
-
-      <div className="flex-1" />
-
       {/* ShapesSwitcher */}
-      <div className="flex items-center gap-0.5 island px-1 py-1">
+      <div className="absolute left-1/2 top-3 -translate-x-1/2 flex items-center gap-0.5 island px-1 py-1 pointer-events-auto">
         <button
           onClick={() => setToolLocked(!toolLocked)}
           className={`tool-btn ${toolLocked ? 'active' : ''}`}
@@ -141,6 +148,7 @@ export function TopBar() {
         >
           <LockIcon locked={toolLocked} />
         </button>
+        <div className="mx-1 h-6 w-px bg-[var(--color-border)]" />
         {tools.map((tool) => (
           <button
             key={tool.type}
@@ -151,36 +159,6 @@ export function TopBar() {
             <ToolIcon type={tool.type} />
           </button>
         ))}
-      </div>
-
-      <div className="flex-1" />
-
-      {/* Undo / Redo */}
-      <button onClick={undo} className="tool-btn" title={`${t('undo')} (Ctrl+Z)`}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M3 7v6h6" /><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13" />
-        </svg>
-      </button>
-      <button onClick={redo} className="tool-btn" title={`${t('redo')} (Ctrl+Shift+Z)`}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M21 7v6h-6" /><path d="M3 17a9 9 0 019-9 9 9 0 016 2.3L21 13" />
-        </svg>
-      </button>
-
-      {/* Zoom controls */}
-      <select
-        value={language}
-        onChange={(e) => setLanguage(e.target.value as 'en' | 'zh-CN')}
-        className="input-field h-9 py-0 text-xs"
-        title={t('language')}
-      >
-        <option value="en">{t('english')}</option>
-        <option value="zh-CN">{t('simplifiedChinese')}</option>
-      </select>
-      <div className="flex items-center gap-0.5 ml-1">
-        <button onClick={() => setCamera({ zoom: Math.max(0.1, camera.zoom - 0.1) })} className="tool-btn text-xs font-bold" title={t('zoomOut')}>&minus;</button>
-        <span className="text-xs text-[var(--color-text-muted)] w-12 text-center tabular-nums">{Math.round(camera.zoom * 100)}%</span>
-        <button onClick={() => setCamera({ zoom: Math.min(10, camera.zoom + 0.1) })} className="tool-btn text-xs font-bold" title={t('zoomIn')}>+</button>
       </div>
     </div>
   )

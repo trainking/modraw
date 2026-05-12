@@ -4,8 +4,8 @@ import { useSceneStore } from './stores/scene'
 import { WelcomeScreen } from './components/WelcomeScreen'
 import { Canvas } from './components/Canvas'
 import { TopBar } from './components/TopBar'
-import { Footer } from './components/Footer'
 import { PropertiesPanel } from './components/PropertiesPanel'
+import { FloatingControls } from './components/FloatingControls'
 import { exportToPng, exportToSvg } from './core/export'
 import { getRecentFileId } from './core/persistence'
 
@@ -55,17 +55,15 @@ export default function App() {
   }
 
   return (
-    <div className="w-full h-full flex flex-col">
+    <div className="w-full h-full relative overflow-hidden">
+      <Canvas />
       <TopBar />
-      <div className="flex-1 flex relative overflow-hidden">
-        <Canvas />
-        <div className="absolute top-3 left-3 pointer-events-none z-50">
-          <div className="pointer-events-auto">
-            <PropertiesPanel />
-          </div>
+      <div className="absolute top-16 left-3 pointer-events-none z-50">
+        <div className="pointer-events-auto">
+          <PropertiesPanel />
         </div>
       </div>
-      <Footer />
+      <FloatingControls />
     </div>
   )
 }

@@ -82,6 +82,30 @@ html, body, #root {
   height: 20px;
 }
 
+.floating-control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #1e1e1e;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.floating-control-btn:hover {
+  background: rgba(105, 101, 219, 0.12);
+  color: var(--color-primary);
+}
+.floating-control-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
 /* Button styles */
 .btn-primary {
   background: var(--color-primary);
