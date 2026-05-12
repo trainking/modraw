@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useAppStore } from '../stores/app'
 import { selectActiveElements, useSceneStore } from '../stores/scene'
 import { exportToPng, exportToSvg } from '../core/export'
+import { openMdrFile } from '../core/mdr'
 import { ToolType } from '../types'
 
 export function TopBar() {
@@ -20,8 +21,10 @@ export function TopBar() {
   const undo = useSceneStore((s) => s.undo)
   const redo = useSceneStore((s) => s.redo)
   const createFile = useSceneStore((s) => s.createFile)
+  const importFile = useSceneStore((s) => s.importFile)
   const setElements = useSceneStore((s) => s.setElements)
   const pushHistory = useSceneStore((s) => s.pushHistory)
+  const activeFile = useSceneStore((s) => s.files.find((f) => f.id === s.activeFileId) || null)
   const elements = useSceneStore(selectActiveElements)
 
   useEffect(() => {
@@ -44,6 +47,29 @@ export function TopBar() {
     { type: 'image', label: 'Image', shortcut: 'I' },
   ]
 
+  const handleSaveMdr = async () => {
+    if (!activeFile || !window.electronAPI) return
+    const payload = {
+      version: 1,
+      app: 'modraw',
+      file: activeFile
+    }
+    await window.electronAPI.saveMdr({
+      defaultName: `${activeFile.name || 'Untitled'}.mdr`,
+      content: JSON.stringify(payload, null, 2)
+    })
+    setMenuOpen(false)
+  }
+
+  const handleOpenMdr = async () => {
+    const file = await openMdrFile()
+    setMenuOpen(false)
+    if (!file) return
+    importFile(file)
+    clearSelection()
+    setViewMode('editor')
+  }
+
   return (
     <div className="h-12 bg-[var(--color-dark)] border-b border-[var(--color-border-light)] flex items-center px-3 gap-2 select-none z-50">
       {/* Main Menu */}
@@ -58,6 +84,14 @@ export function TopBar() {
             <div className="context-menu-item" onClick={() => { createFile(); setViewMode('editor'); setMenuOpen(false) }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
               New Canvas
+            </div>
+            <div className="context-menu-item" onClick={handleOpenMdr}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 20h16V8l-4-4H4z"/><path d="M14 4v5h5"/><path d="M8 14h8"/></svg>
+              Open Canvas
+            </div>
+            <div className="context-menu-item" onClick={handleSaveMdr}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+              Save to...
             </div>
             <div className="context-menu-item danger" onClick={() => {
               setMenuOpen(false)

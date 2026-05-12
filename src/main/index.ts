@@ -1,5 +1,6 @@
-import { app, BrowserWindow, Menu, dialog } from 'electron'
+import { app, BrowserWindow, Menu, dialog, ipcMain } from 'electron'
 import { join } from 'path'
+import { readFile, writeFile } from 'fs/promises'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -27,6 +28,36 @@ function createWindow() {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 }
+
+ipcMain.handle('file-save-mdr', async (_event, payload: { defaultName: string; content: string }) => {
+  const result = await dialog.showSaveDialog(mainWindow!, {
+    title: 'Save MoDraw canvas',
+    defaultPath: payload.defaultName.endsWith('.mdr') ? payload.defaultName : `${payload.defaultName}.mdr`,
+    filters: [
+      { name: 'MoDraw Canvas', extensions: ['mdr'] }
+    ]
+  })
+  if (result.canceled || !result.filePath) return { canceled: true as const }
+
+  const filePath = result.filePath.endsWith('.mdr') ? result.filePath : `${result.filePath}.mdr`
+  await writeFile(filePath, payload.content, 'utf-8')
+  return { canceled: false as const, filePath }
+})
+
+ipcMain.handle('file-open-mdr', async () => {
+  const result = await dialog.showOpenDialog(mainWindow!, {
+    title: 'Open MoDraw canvas',
+    properties: ['openFile'],
+    filters: [
+      { name: 'MoDraw Canvas', extensions: ['mdr'] }
+    ]
+  })
+  if (result.canceled || result.filePaths.length === 0) return { canceled: true as const }
+
+  const filePath = result.filePaths[0]
+  const content = await readFile(filePath, 'utf-8')
+  return { canceled: false as const, filePath, content }
+})
 
 const menuTemplate: Electron.MenuItemConstructorOptions[] = [
   {

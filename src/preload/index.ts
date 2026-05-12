@@ -14,5 +14,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onMenuRedo: (cb: () => void) => onMenu('menu-redo', cb),
   onMenuZoomIn: (cb: () => void) => onMenu('menu-zoom-in', cb),
   onMenuZoomOut: (cb: () => void) => onMenu('menu-zoom-out', cb),
-  onMenuZoomReset: (cb: () => void) => onMenu('menu-zoom-reset', cb)
+  onMenuZoomReset: (cb: () => void) => onMenu('menu-zoom-reset', cb),
+  saveMdr: (payload: { defaultName: string; content: string }) => ipcRenderer.invoke('file-save-mdr', payload),
+  openMdr: () => ipcRenderer.invoke('file-open-mdr')
 })

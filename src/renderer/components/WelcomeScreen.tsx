@@ -1,9 +1,11 @@
 import { useSceneStore } from '../stores/scene'
 import { useAppStore } from '../stores/app'
+import { openMdrFile } from '../core/mdr'
 
 export function WelcomeScreen() {
   const files = useSceneStore((s) => s.files)
   const createFile = useSceneStore((s) => s.createFile)
+  const importFile = useSceneStore((s) => s.importFile)
   const setActiveFile = useSceneStore((s) => s.setActiveFile)
   const deleteFile = useSceneStore((s) => s.deleteFile)
   const setViewMode = useAppStore((s) => s.setViewMode)
@@ -15,6 +17,13 @@ export function WelcomeScreen() {
 
   const handleOpen = (id: string) => {
     setActiveFile(id)
+    setViewMode('editor')
+  }
+
+  const handleOpenMdr = async () => {
+    const file = await openMdrFile()
+    if (!file) return
+    importFile(file)
     setViewMode('editor')
   }
 
@@ -36,6 +45,9 @@ export function WelcomeScreen() {
       <div className="flex flex-col gap-3 items-center">
         <button onClick={handleNew} className="btn-primary text-base px-8 py-3 rounded-lg">
           New Canvas
+        </button>
+        <button onClick={handleOpenMdr} className="btn-ghost text-base px-8 py-3 rounded-lg">
+          Open Canvas
         </button>
 
         {files.length > 0 && (

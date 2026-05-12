@@ -10,6 +10,8 @@ declare global {
     onMenuZoomIn: (cb: () => void) => () => void
     onMenuZoomOut: (cb: () => void) => () => void
     onMenuZoomReset: (cb: () => void) => () => void
+    saveMdr: (payload: { defaultName: string; content: string }) => Promise<{ canceled: true } | { canceled: false; filePath: string }>
+    openMdr: () => Promise<{ canceled: true } | { canceled: false; filePath: string; content: string }>
   }
 
   interface Window {

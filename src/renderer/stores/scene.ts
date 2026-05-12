@@ -14,6 +14,7 @@ export interface SceneState {
   getActiveFile: () => SceneFile | null
   getElements: () => Element[]
   createFile: () => SceneFile
+  importFile: (file: SceneFile) => void
   deleteFile: (id: string) => void
   setActiveFile: (id: string | null) => void
   updateFile: (id: string, updates: Partial<SceneFile>) => void
@@ -58,6 +59,25 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       historyIndex: -1
     }))
     return file
+  },
+
+  importFile: (file) => {
+    const now = Date.now()
+    const imported: SceneFile = {
+      ...file,
+      id: file.id || generateId(),
+      name: file.name || 'Imported Canvas',
+      elements: Array.isArray(file.elements) ? file.elements : [],
+      appState: file.appState || {},
+      createdAt: file.createdAt || now,
+      updatedAt: now
+    }
+    set((s) => ({
+      files: [...s.files.filter((f) => f.id !== imported.id), imported],
+      activeFileId: imported.id,
+      history: [],
+      historyIndex: -1
+    }))
   },
 
   deleteFile: (id) =>
