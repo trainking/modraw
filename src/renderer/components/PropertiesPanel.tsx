@@ -49,7 +49,7 @@ export function PropertiesPanel() {
     setElements(next)
   }
 
-  if (el.type === 'rectangle' || el.type === 'diamond') {
+  if (el.type === 'rectangle' || el.type === 'diamond' || el.type === 'ellipse') {
     return (
       <div className="w-[204px] island p-3 flex flex-col gap-3 text-sm select-none overflow-y-auto z-50 max-h-[calc(100vh-96px)]">
         <PanelSection label="描边">
@@ -138,20 +138,22 @@ export function PropertiesPanel() {
           </IconButtonRow>
         </PanelSection>
 
-        <PanelSection label="边角">
-          <IconButtonRow>
-            {ROUNDNESS_LEVELS.map((roundness) => (
-              <IconButton
-                key={roundness}
-                selected={(el.roundness || 0) === roundness}
-                title={roundness === 0 ? 'sharp' : 'rounded'}
-                onClick={() => update({ roundness } as Partial<Element>)}
-              >
-                <CornerIcon rounded={roundness > 0} />
-              </IconButton>
-            ))}
-          </IconButtonRow>
-        </PanelSection>
+        {el.type !== 'ellipse' && (
+          <PanelSection label="边角">
+            <IconButtonRow>
+              {ROUNDNESS_LEVELS.map((roundness) => (
+                <IconButton
+                  key={roundness}
+                  selected={(el.roundness || 0) === roundness}
+                  title={roundness === 0 ? 'sharp' : 'rounded'}
+                  onClick={() => update({ roundness } as Partial<Element>)}
+                >
+                  <CornerIcon rounded={roundness > 0} />
+                </IconButton>
+              ))}
+            </IconButtonRow>
+          </PanelSection>
+        )}
 
         <PanelSection label="透明度">
           <div className="flex flex-col gap-1">
