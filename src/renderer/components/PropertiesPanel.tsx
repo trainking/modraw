@@ -309,7 +309,7 @@ export function PropertiesPanel() {
     )
   }
 
-  if (el.type === 'line') {
+  if (el.type === 'line' || el.type === 'freedraw') {
     return (
       <div className="w-[204px] island p-3 flex flex-col gap-3 text-sm select-none overflow-y-auto z-50 max-h-[calc(100vh-96px)]">
         <PanelSection label="描边">

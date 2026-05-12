@@ -208,14 +208,8 @@ export function renderElement(ctx: CanvasRenderingContext2D, el: Element) {
     }
     case 'freedraw': {
       const pts = (el as any).points as [number, number][] | undefined
-      if (pts && pts.length >= 2) {
-        for (let i = 0; i < pts.length - 1; i++) {
-          const drawable = generator.line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], {
-            seed: el.seed, roughness: el.roughness,
-            stroke: el.strokeColor, strokeWidth: el.strokeWidth
-          })
-          drawRoughPath(ctx, drawable, alpha, el.strokeStyle)
-        }
+      if (pts && pts.length > 0) {
+        drawFreehandStroke(ctx, pts, el.strokeColor, el.strokeWidth, el.strokeStyle, alpha)
       }
       break
     }
@@ -249,6 +243,45 @@ export function renderElement(ctx: CanvasRenderingContext2D, el: Element) {
     }
   }
 
+  ctx.restore()
+}
+
+function drawFreehandStroke(
+  ctx: CanvasRenderingContext2D,
+  points: [number, number][],
+  color: string,
+  width: number,
+  style: string,
+  alpha: number
+) {
+  ctx.save()
+  ctx.globalAlpha = alpha
+  ctx.strokeStyle = color
+  ctx.lineWidth = width
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  applyStrokeStyle(ctx, style)
+
+  if (points.length === 1) {
+    const [x, y] = points[0]
+    ctx.beginPath()
+    ctx.arc(x, y, Math.max(1, width / 2), 0, Math.PI * 2)
+    ctx.fillStyle = color
+    ctx.fill()
+    ctx.restore()
+    return
+  }
+
+  ctx.beginPath()
+  ctx.moveTo(points[0][0], points[0][1])
+  for (let i = 1; i < points.length - 1; i++) {
+    const [x, y] = points[i]
+    const [nextX, nextY] = points[i + 1]
+    ctx.quadraticCurveTo(x, y, (x + nextX) / 2, (y + nextY) / 2)
+  }
+  const last = points[points.length - 1]
+  ctx.lineTo(last[0], last[1])
+  ctx.stroke()
   ctx.restore()
 }
 

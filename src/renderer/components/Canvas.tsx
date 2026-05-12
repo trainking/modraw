@@ -99,13 +99,20 @@ export function Canvas() {
           x: Math.min(drawing.sx, drawing.cx), y: Math.min(drawing.sy, drawing.cy),
           w: Math.abs(drawing.cx - drawing.sx), h: Math.abs(drawing.cy - drawing.sy)
         }
+      } else if (drawing.type === 'freedraw') {
+        ghost = makeFreedrawElement(freedrawPts, {
+          currentStrokeColor,
+          currentStrokeWidth,
+          currentStrokeStyle,
+          currentOpacity
+        })
       } else {
         ghost = makeGhostElement(drawing)
       }
     }
 
     renderInteractiveScene(ctx, ghost, selBox, camera, canvas.width, canvas.height)
-  }, [drawing, camera])
+  }, [drawing, freedrawPts, camera, currentStrokeColor, currentStrokeWidth, currentStrokeStyle, currentOpacity])
 
   // Sync & draw
   useEffect(() => {
@@ -652,6 +659,35 @@ function makeLinearElement(type: 'line' | 'arrow', x1: number, y1: number, x2: n
     roughness: p.currentRoughness, opacity: p.currentOpacity, seed: Math.random() * 100000 | 0,
     locked: false, groupIds: [], frameId: null, boundElements: null,
     points, startArrowhead: 'none', endArrowhead: type === 'arrow' ? 'arrow' : 'none' } as Element
+}
+
+function makeFreedrawElement(points: [number, number][], p: any): Element | null {
+  if (points.length === 0) return null
+  const bounds = getBoundsFromPoints(points)
+  return {
+    id: 'freedraw-preview',
+    type: 'freedraw',
+    x: bounds.x || 0,
+    y: bounds.y || 0,
+    width: bounds.width || 1,
+    height: bounds.height || 1,
+    angle: 0,
+    strokeColor: p.currentStrokeColor,
+    backgroundColor: 'transparent',
+    fillStyle: 'solid',
+    strokeWidth: p.currentStrokeWidth,
+    strokeStyle: p.currentStrokeStyle,
+    roughness: 0,
+    opacity: p.currentOpacity,
+    seed: 1,
+    locked: false,
+    groupIds: [],
+    frameId: null,
+    boundElements: null,
+    points,
+    pressures: [],
+    simulatePressure: true
+  } as Element
 }
 
 function calcResize(handle: string, el: Element, dx: number, dy: number): Partial<Element> {
