@@ -128,6 +128,23 @@ export function renderElement(ctx: CanvasRenderingContext2D, el: Element) {
   const hasFill = el.backgroundColor && el.backgroundColor !== 'transparent'
 
   switch (el.type) {
+    case 'frame': {
+      ctx.globalAlpha = alpha
+      const radius = Math.max(0, Math.min((el as any).roundness || 8, Math.min(el.width, el.height) / 2))
+      ctx.strokeStyle = el.strokeColor || '#b8b8b8'
+      ctx.lineWidth = el.strokeWidth || 2
+      ctx.setLineDash([])
+      ctx.beginPath()
+      ctx.roundRect(el.x, el.y, el.width, el.height, radius)
+      ctx.stroke()
+      ctx.font = '13px Assistant, system-ui, sans-serif'
+      ctx.fillStyle = '#8d8d8d'
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'bottom'
+      ctx.fillText('Frame', el.x, el.y - 5)
+      ctx.globalAlpha = 1
+      break
+    }
     case 'rectangle':
     case 'diamond':
     case 'ellipse': {

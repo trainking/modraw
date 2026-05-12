@@ -117,15 +117,26 @@ export const useSceneStore = create<SceneState>((set, get) => ({
     })),
 
   deleteElements: (ids, recordHistory = true) => {
-    const hasDeletableElement = get()
-      .getElements()
+    const currentElements = get().getElements()
+    const hasDeletableElement = currentElements
       .some((el) => !el.locked && ids.includes(el.id))
     if (!hasDeletableElement) return
+    const deletedFrameIds = new Set(
+      currentElements
+        .filter((el) => el.type === 'frame' && !el.locked && ids.includes(el.id))
+        .map((el) => el.id)
+    )
     if (recordHistory) get().pushHistory()
     set((s) => ({
       files: s.files.map((f) =>
         f.id === s.activeFileId
-          ? { ...f, elements: f.elements.filter((el) => el.locked || !ids.includes(el.id)), updatedAt: Date.now() }
+          ? {
+              ...f,
+              elements: f.elements
+                .filter((el) => el.locked || !ids.includes(el.id))
+                .map((el) => deletedFrameIds.has(el.frameId || '') ? { ...el, frameId: null } as Element : el),
+              updatedAt: Date.now()
+            }
           : f
       )
     }))

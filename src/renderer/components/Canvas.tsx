@@ -199,7 +199,8 @@ export function Canvas() {
           setSelection([hit.id])
           return
         }
-        const idsToMove = (selectedIds.includes(hit.id) ? selectedIds : [hit.id])
+          const baseIds = selectedIds.includes(hit.id) ? selectedIds : [hit.id]
+          const idsToMove = expandFrameSelection(baseIds, elements)
           .filter((id) => !elements.find((el) => el.id === id)?.locked)
         if (idsToMove.length === 0) return
         if (!selectedIds.includes(hit.id)) setSelection([hit.id])
@@ -230,6 +231,7 @@ export function Canvas() {
         locked: false, groupIds: [], frameId: null, boundElements: null,
         text: 'Text', fontSize: currentFontSize, fontFamily: currentFontFamily, textAlign: 'left', autoResize: true
       } as Element
+      el.frameId = findContainingFrameId(el, elements)
       addElement(el)
       setSelection([el.id])
       if (!toolLocked) setTool('select')
@@ -243,7 +245,7 @@ export function Canvas() {
       return
     }
 
-    if (['rectangle', 'diamond', 'ellipse', 'line', 'arrow'].includes(effectiveTool)) {
+    if (['rectangle', 'diamond', 'ellipse', 'line', 'arrow', 'frame'].includes(effectiveTool)) {
       clearSelection()
       setDrawing({ type: effectiveTool, sx: pos.x, sy: pos.y, cx: pos.x, cy: pos.y })
     }
@@ -323,6 +325,7 @@ export function Canvas() {
           locked: false, groupIds: [], frameId: null, boundElements: null,
           points: freedrawPts, pressures: [], simulatePressure: true
         } as Element
+        el.frameId = findContainingFrameId(el, elements)
         addElement(el)
         setSelection([el.id])
         setFreedrawPts([])
@@ -334,11 +337,26 @@ export function Canvas() {
           const selected = elements.filter((el) => el.x < x + w && el.x + el.width > x && el.y < y + h && el.y + el.height > y)
           setSelection(selected.map((el) => el.id))
         }
+      } else if (drawing.type === 'frame') {
+        const x = Math.min(drawing.sx, drawing.cx), y = Math.min(drawing.sy, drawing.cy)
+        const w = Math.abs(drawing.cx - drawing.sx), h = Math.abs(drawing.cy - drawing.sy)
+        if (w > 12 || h > 12) {
+          const frame = makeFrameElement(x, y, w, h)
+          pushHistory()
+          const next = elements.map((item) => item.type !== 'frame' && isElementInsideFrame(item, frame)
+            ? { ...item, frameId: frame.id } as Element
+            : item
+          )
+          setElements([...next, frame])
+          setSelection([frame.id])
+          createdElement = true
+        }
       } else if (['rectangle', 'diamond', 'ellipse'].includes(drawing.type)) {
         const x = Math.min(drawing.sx, drawing.cx), y = Math.min(drawing.sy, drawing.cy)
         const w = Math.abs(drawing.cx - drawing.sx), h = Math.abs(drawing.cy - drawing.sy)
         if (w > 3 || h > 3) {
           const el = makeShapeElement(drawing.type, x, y, w, h, { currentStrokeColor, currentBgColor, currentFillStyle, currentStrokeWidth, currentStrokeStyle, currentRoughness, currentOpacity })
+          el.frameId = findContainingFrameId(el, elements)
           addElement(el); setSelection([el.id])
           createdElement = true
         }
@@ -346,6 +364,7 @@ export function Canvas() {
         const w = Math.abs(drawing.cx - drawing.sx), h = Math.abs(drawing.cy - drawing.sy)
         if (w > 2 || h > 2) {
           const el = makeLinearElement(drawing.type as 'line' | 'arrow', drawing.sx, drawing.sy, drawing.cx, drawing.cy, { currentStrokeColor, currentStrokeWidth, currentStrokeStyle, currentRoughness, currentOpacity })
+          el.frameId = findContainingFrameId(el, elements)
           addElement(el); setSelection([el.id])
           createdElement = true
         }
@@ -353,13 +372,23 @@ export function Canvas() {
       setDrawing(null)
       if (createdElement && !toolLocked) setTool('select')
     }
+    if (moving) {
+      const movedIds = new Set(moving.origins.keys())
+      const current = useSceneStore.getState().getElements()
+      const next = current.map((item) => {
+        if (!movedIds.has(item.id) || item.type === 'frame') return item
+        const frameId = findContainingFrameId(item, current)
+        return item.frameId === frameId ? item : { ...item, frameId } as Element
+      })
+      setElements(next)
+    }
     setMoving(null)
     setEditingPoint(null)
     setResizing(null)
     setRotating(null)
     setPanning(null)
   }, [
-    drawing, freedrawPts, elements, addElement, setSelection, currentStrokeColor,
+    drawing, moving, freedrawPts, elements, addElement, setElements, pushHistory, setSelection, currentStrokeColor,
     currentBgColor, currentFillStyle, currentStrokeWidth, currentStrokeStyle,
     currentRoughness, currentOpacity, toolLocked, setTool
   ])
@@ -372,7 +401,7 @@ export function Canvas() {
       const k = e.key.toLowerCase()
       if (k === ' ') { e.preventDefault(); setSpaceHeld(true); return }
       // Tool shortcuts
-      const map: Record<string, string> = { v:'select', r:'rectangle', d:'diamond', e:'ellipse', a:'arrow', l:'line', p:'freedraw', t:'text', i:'image', x:'eraser', h:'hand' }
+      const map: Record<string, string> = { v:'select', r:'rectangle', d:'diamond', e:'ellipse', a:'arrow', l:'line', p:'freedraw', t:'text', i:'image', f:'frame', x:'eraser', h:'hand' }
       if (map[k]) { setTool(map[k] as any); return }
       if (k === 'delete' || k === 'backspace') { const ids = useAppStore.getState().selectedIds; if (ids.length > 0) { deleteElements(ids); clearSelection() } return }
       if (k === 'escape') { clearSelection(); return }
@@ -418,13 +447,14 @@ export function Canvas() {
         locked: false, groupIds: [], frameId: null, boundElements: null,
         fileId: generateId(), dataUrl: image.dataUrl, scale: [1, 1], status: 'saved'
       } as Element
+      el.frameId = findContainingFrameId(el, elements)
       addElement(el)
       setSelection([el.id])
       if (!toolLocked) setTool('select')
     } catch {
       // Ignore unsupported or unreadable image files.
     }
-  }, [addElement, currentOpacity, setSelection, setTool, toolLocked])
+  }, [addElement, currentOpacity, elements, setSelection, setTool, toolLocked])
 
   useEffect(() => {
     if (contextMenu) {
@@ -627,6 +657,54 @@ function addPointToLinearElement(el: Element, x: number, y: number): Partial<Ele
   return { points, ...getBoundsFromPoints(points) } as Partial<Element>
 }
 
+function expandFrameSelection(ids: string[], elements: Element[]): string[] {
+  const expanded = new Set(ids)
+  for (const id of ids) {
+    const el = elements.find((item) => item.id === id)
+    if (el?.type !== 'frame') continue
+    for (const item of elements) {
+      if (item.frameId === el.id) expanded.add(item.id)
+    }
+  }
+  return [...expanded]
+}
+
+function findContainingFrameId(el: Element, elements: Element[]): string | null {
+  for (let i = elements.length - 1; i >= 0; i--) {
+    const frame = elements[i]
+    if (frame.type === 'frame' && isElementInsideFrame(el, frame)) return frame.id
+  }
+  return null
+}
+
+function isElementInsideFrame(el: Element, frame: Element): boolean {
+  if (el.id === frame.id || el.type === 'frame') return false
+  const bounds = getElementBounds(el)
+  const padding = 1
+  return bounds.minX >= frame.x + padding &&
+    bounds.maxX <= frame.x + frame.width - padding &&
+    bounds.minY >= frame.y + padding &&
+    bounds.maxY <= frame.y + frame.height - padding
+}
+
+function getElementBounds(el: Element) {
+  const points = (el as any).points as [number, number][] | undefined
+  if (points?.length) {
+    return {
+      minX: Math.min(...points.map(([x]) => x)),
+      minY: Math.min(...points.map(([, y]) => y)),
+      maxX: Math.max(...points.map(([x]) => x)),
+      maxY: Math.max(...points.map(([, y]) => y))
+    }
+  }
+  return {
+    minX: Math.min(el.x, el.x + el.width),
+    minY: Math.min(el.y, el.y + el.height),
+    maxX: Math.max(el.x, el.x + el.width),
+    maxY: Math.max(el.y, el.y + el.height)
+  }
+}
+
 function distanceToSegment(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
   const dx = x2 - x1
   const dy = y2 - y1
@@ -641,6 +719,9 @@ function makeGhostElement(d: DrawState): Element {
   const w = Math.abs(d.cx - d.sx), h = Math.abs(d.cy - d.sy)
   if (d.type === 'line' || d.type === 'arrow') {
     return makeLinearElement(d.type, d.sx, d.sy, d.cx, d.cy, { currentStrokeColor: '#6b9fff', currentStrokeWidth: 2, currentStrokeStyle: 'dashed', currentRoughness: 0, currentOpacity: 100 })
+  }
+  if (d.type === 'frame') {
+    return makeFrameElement(x, y, w, h)
   }
   return makeShapeElement(d.type, x, y, w, h, { currentStrokeColor: '#6b9fff', currentBgColor: 'rgba(107, 159, 255, 0.1)', currentFillStyle: 'solid', currentStrokeWidth: 2, currentStrokeStyle: 'dashed', currentRoughness: 0, currentOpacity: 70 })
 }
@@ -662,6 +743,31 @@ function makeLinearElement(type: 'line' | 'arrow', x1: number, y1: number, x2: n
     roughness: p.currentRoughness, opacity: p.currentOpacity, seed: Math.random() * 100000 | 0,
     locked: false, groupIds: [], frameId: null, boundElements: null,
     points, startArrowhead: 'none', endArrowhead: type === 'arrow' ? 'arrow' : 'none' } as Element
+}
+
+function makeFrameElement(x: number, y: number, w: number, h: number): Element {
+  return {
+    id: generateId(),
+    type: 'frame',
+    x,
+    y,
+    width: w,
+    height: h,
+    angle: 0,
+    strokeColor: '#b8b8b8',
+    backgroundColor: 'transparent',
+    fillStyle: 'solid',
+    strokeWidth: 2,
+    strokeStyle: 'solid',
+    roughness: 0,
+    opacity: 100,
+    roundness: 8,
+    seed: Math.random() * 100000 | 0,
+    locked: false,
+    groupIds: [],
+    frameId: null,
+    boundElements: null
+  } as Element
 }
 
 function makeFreedrawElement(points: [number, number][], p: any): Element | null {

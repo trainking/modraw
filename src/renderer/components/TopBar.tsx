@@ -49,6 +49,7 @@ export function TopBar() {
     { type: 'text', label: t('text'), shortcut: 'T' },
     { type: 'image', label: t('image'), shortcut: 'I' },
   ]
+  const frameTool: { type: ToolType; label: string; shortcut: string } = { type: 'frame', label: t('frame'), shortcut: 'F' }
 
   const handleSaveMdr = async () => {
     if (!activeFile || !window.electronAPI) return
@@ -171,6 +172,14 @@ export function TopBar() {
             <ToolIcon type={tool.type} />
           </button>
         ))}
+        <div className="mx-1 h-6 w-px bg-[var(--color-border)]" />
+        <button
+          onClick={() => setTool(frameTool.type)}
+          className={`tool-btn ${activeTool === frameTool.type ? 'active' : ''}`}
+          title={`${frameTool.label} (${frameTool.shortcut})`}
+        >
+          <ToolIcon type={frameTool.type} />
+        </button>
       </div>
     </div>
   )
@@ -239,6 +248,12 @@ function ToolIcon({ type }: { type: ToolType }) {
     case 'image': return (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
+      </svg>
+    )
+    case 'frame': return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="4" y="6" width="16" height="14" rx="2" />
+        <path d="M7 3h10" />
       </svg>
     )
     case 'hand': return (

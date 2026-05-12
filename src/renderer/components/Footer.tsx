@@ -21,6 +21,7 @@ export function Footer() {
     freedraw: t('hintFreedraw'),
     text: t('hintText'),
     image: t('hintImage'),
+    frame: t('hintFrame'),
     eraser: t('hintEraser'),
     hand: t('hintHand'),
   }

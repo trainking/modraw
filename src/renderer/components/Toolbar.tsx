@@ -49,6 +49,12 @@ function ToolIcon({ type }: { type: ToolType }) {
         <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" />
       </svg>
     )
+    case 'frame': return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="4" y="6" width="16" height="14" rx="2" />
+        <path d="M7 3h10" />
+      </svg>
+    )
     case 'eraser': return (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M20 20H7L3 16l9-9 8 8-4 4" /><path d="M6 13l6 6" />
@@ -80,6 +86,7 @@ export function Toolbar() {
     { type: 'freedraw', label: t('freedraw'), shortcut: 'P' },
     { type: 'text', label: t('text'), shortcut: 'T' },
     { type: 'image', label: t('image'), shortcut: 'I' },
+    { type: 'frame', label: t('frame'), shortcut: 'F' },
     { type: 'eraser', label: t('eraser'), shortcut: 'X' },
     { type: 'hand', label: t('hand'), shortcut: 'H' },
   ]

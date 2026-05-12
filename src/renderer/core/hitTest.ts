@@ -23,6 +23,17 @@ function isPointInElement(px: number, py: number, el: Element): boolean {
     case 'image':
       return tpx >= el.x - 6 && tpx <= el.x + el.width + 6 &&
              tpy >= el.y - 6 && tpy <= el.y + el.height + 6
+    case 'frame': {
+      const nearLeft = Math.abs(tpx - el.x) <= 8
+      const nearRight = Math.abs(tpx - (el.x + el.width)) <= 8
+      const nearTop = Math.abs(tpy - el.y) <= 8
+      const nearBottom = Math.abs(tpy - (el.y + el.height)) <= 8
+      const insideX = tpx >= el.x - 8 && tpx <= el.x + el.width + 8
+      const insideY = tpy >= el.y - 8 && tpy <= el.y + el.height + 8
+      const onBorder = insideY && (nearLeft || nearRight) || insideX && (nearTop || nearBottom)
+      const onLabel = tpx >= el.x && tpx <= el.x + 42 && tpy >= el.y - 22 && tpy <= el.y
+      return onBorder || onLabel
+    }
     case 'diamond': {
       const cx = el.x + el.width / 2, cy = el.y + el.height / 2
       const hw = el.width / 2, hh = el.height / 2

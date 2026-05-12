@@ -2,12 +2,12 @@ export type ToolType =
   | 'select' | 'hand'
   | 'rectangle' | 'diamond' | 'ellipse'
   | 'line' | 'arrow'
-  | 'freedraw' | 'text' | 'image' | 'eraser'
+  | 'freedraw' | 'text' | 'image' | 'eraser' | 'frame'
 
 export type ElementType =
   | 'rectangle' | 'diamond' | 'ellipse'
   | 'line' | 'arrow'
-  | 'freedraw' | 'text' | 'image'
+  | 'freedraw' | 'text' | 'image' | 'frame'
 
 export interface BaseElement {
   id: string; type: ElementType
