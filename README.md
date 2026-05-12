@@ -44,6 +44,44 @@ Preview the built app / 预览构建结果：
 npm run preview
 ```
 
+## Packaging / 打包安装包
+
+Modraw uses `electron-builder` to package desktop installers. The build output is written to the `release/` directory.
+
+Modraw 使用 `electron-builder` 打包桌面安装包，打包产物会输出到 `release/` 目录。
+
+Create an unpacked app directory for local verification / 生成未压缩应用目录，用于本地检查：
+
+```bash
+npm run pack
+```
+
+Build the default installer for the current platform / 为当前平台构建默认安装包：
+
+```bash
+npm run dist
+```
+
+Build a Windows NSIS installer / 构建 Windows NSIS 安装包：
+
+```bash
+npm run dist:win
+```
+
+After packaging, the Windows installer will be generated as / 打包完成后，Windows 安装包会生成在：
+
+```text
+release/Modraw-1.0.0-Setup-x64.exe
+```
+
+Packaging notes / 打包说明：
+
+- Run `npm install` before packaging to install `electron-builder`. / 打包前请先运行 `npm install` 安装 `electron-builder`。
+- `npm run dist:win` runs `electron-vite build` first, then creates the installer. / `npm run dist:win` 会先执行 `electron-vite build`，再生成安装包。
+- Code signing is not configured in this version. Windows may show an unknown publisher warning. / 当前版本未配置代码签名，Windows 可能会显示未知发布者提示。
+- Windows executable signing/editing is disabled in `package.json` to avoid local symlink privilege issues during unsigned packaging. / `package.json` 中已关闭 Windows 可执行文件签名和资源编辑，以避免未签名打包时的本地符号链接权限问题。
+- The installer allows users to choose the installation directory and creates desktop/start menu shortcuts. / 安装包允许用户选择安装目录，并会创建桌面和开始菜单快捷方式。
+
 ## Usage / 使用说明
 
 - Use the top toolbar to select drawing tools. / 使用顶部工具栏选择绘图工具。
@@ -113,6 +151,6 @@ Modraw 使用 `.mdr` 文件保存画布。该文件以 JSON 格式存储当前�
 
 ## Version Status / 版本状态
 
-This README describes the first development version. The app is usable for local desktop drawing workflows, but packaging, collaboration, cloud sync, and advanced document management are not included yet.
+This README describes the first development version. The app is usable for local desktop drawing workflows and can be packaged as a Windows installer, but collaboration, cloud sync, and advanced document management are not included yet.
 
-本文档描述第一个开发版本。当前版本可用于本地桌面绘图流程，但暂未包含安装包打包、协作、云同步和高级文档管理等能力。
+本文档描述第一个开发版本。当前版本可用于本地桌面绘图流程，并可打包为 Windows 安装包，但暂未包含协作、云同步和高级文档管理等能力。
