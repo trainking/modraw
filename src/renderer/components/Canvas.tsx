@@ -46,10 +46,11 @@ export function Canvas() {
   const [panning, setPanning] = useState<{ lx: number; ly: number; cx: number; cy: number } | null>(null)
   const [moving, setMoving] = useState<MoveState | null>(null)
   const [resizing, setResizing] = useState<ResizeState | null>(null)
+  const [editingPoint, setEditingPoint] = useState<PointEditState | null>(null)
   const [rotating, setRotating] = useState<{ elId: string; startAngle: number; startMouseAngle: number; cx: number; cy: number } | null>(null)
   const [spaceHeld, setSpaceHeld] = useState(false)
   const [freedrawPts, setFreedrawPts] = useState<[number, number][]>([])
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; sceneX: number; sceneY: number } | null>(null)
   const [editingTextEl, setEditingTextEl] = useState<Element | null>(null)
   const [editTextValue, setEditTextValue] = useState('')
 
@@ -157,6 +158,12 @@ export function Canvas() {
       if (selectedIds.length === 1) {
         const selEl = elements.find((el) => el.id === selectedIds[0])
         if (selEl) {
+          const pointIndex = selEl.type === 'arrow' ? hitTestPointHandle(pos.x, pos.y, selEl) : -1
+          if (pointIndex >= 0 && !selEl.locked) {
+            pushHistory()
+            setEditingPoint({ elId: selEl.id, pointIndex, points: clonePoints((selEl as any).points || []) })
+            return
+          }
           // Rotation handle check
           const rx = selEl.x + selEl.width / 2, ry = selEl.y - 28
           if (Math.hypot(pos.x - rx, pos.y - ry) < 12 && !selEl.locked) {
@@ -253,6 +260,13 @@ export function Canvas() {
       }
       return
     }
+    if (editingPoint) {
+      const pos = getScenePos(e)
+      const points = clonePoints(editingPoint.points)
+      points[editingPoint.pointIndex] = [pos.x, pos.y]
+      updateElement(editingPoint.elId, { points, ...getBoundsFromPoints(points) } as any)
+      return
+    }
     if (resizing) {
       const pos = getScenePos(e)
       const dx = pos.x - resizing.sx, dy = pos.y - resizing.sy
@@ -282,7 +296,7 @@ export function Canvas() {
       else if (effectiveTool === 'eraser') ic.style.cursor = 'pointer'
       else ic.style.cursor = 'crosshair'
     }
-  }, [panning, moving, resizing, rotating, drawing, getScenePos, camera, effectiveTool, spaceHeld, updateElement, setCamera])
+  }, [panning, moving, editingPoint, resizing, rotating, drawing, getScenePos, camera, effectiveTool, spaceHeld, updateElement, setCamera])
 
   const handleMouseUp = useCallback((_e: React.MouseEvent) => {
     if (drawing) {
@@ -330,6 +344,7 @@ export function Canvas() {
       if (createdElement && !toolLocked) setTool('select')
     }
     setMoving(null)
+    setEditingPoint(null)
     setResizing(null)
     setRotating(null)
     setPanning(null)
@@ -363,7 +378,7 @@ export function Canvas() {
     const hit = hitTest(pos.x, pos.y, elements)
     if (hit) {
       if (!selectedIds.includes(hit.id)) setSelection([hit.id])
-      setContextMenu({ x: e.clientX, y: e.clientY })
+      setContextMenu({ x: e.clientX, y: e.clientY, sceneX: pos.x, sceneY: pos.y })
     } else {
       setContextMenu(null)
     }
@@ -448,6 +463,19 @@ export function Canvas() {
               <div className="context-menu-separator" />
             </>
           )}
+          {ctxEl && ctxEl.type === 'arrow' && (
+            <>
+              <div className="context-menu-item" onClick={() => {
+                pushHistory()
+                updateElement(ctxEl.id, addPointToLinearElement(ctxEl, contextMenu.sceneX, contextMenu.sceneY) as any)
+                closeContextMenu()
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
+                Add Point
+              </div>
+              <div className="context-menu-separator" />
+            </>
+          )}
           <div className="context-menu-item" onClick={() => { deleteElements(selectedIds); clearSelection(); closeContextMenu() }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
             Delete
@@ -508,6 +536,7 @@ export function Canvas() {
 interface DrawState { type: string; sx: number; sy: number; cx: number; cy: number }
 interface MoveState { sx: number; sy: number; origins: Map<string, { x: number; y: number; points?: [number, number][] }> }
 interface ResizeState { handle: string; sx: number; sy: number; el: Element }
+interface PointEditState { elId: string; pointIndex: number; points: [number, number][] }
 
 function readImageFile(file: File): Promise<{ dataUrl: string; width: number; height: number }> {
   return new Promise((resolve, reject) => {
@@ -547,6 +576,56 @@ function duplicateElement(el: Element): Element {
   return copy as Element
 }
 
+function hitTestPointHandle(x: number, y: number, el: Element): number {
+  const points = ((el as any).points || []) as [number, number][]
+  for (let i = points.length - 1; i >= 0; i--) {
+    const [px, py] = points[i]
+    if (Math.hypot(x - px, y - py) <= 10) return i
+  }
+  return -1
+}
+
+function getBoundsFromPoints(points: [number, number][]): Partial<Element> {
+  const xs = points.map(([x]) => x)
+  const ys = points.map(([, y]) => y)
+  const minX = Math.min(...xs)
+  const minY = Math.min(...ys)
+  const maxX = Math.max(...xs)
+  const maxY = Math.max(...ys)
+  return {
+    x: minX,
+    y: minY,
+    width: Math.max(1, maxX - minX),
+    height: Math.max(1, maxY - minY)
+  }
+}
+
+function addPointToLinearElement(el: Element, x: number, y: number): Partial<Element> {
+  const points = clonePoints(((el as any).points || []) as [number, number][])
+  if (points.length < 2) return {}
+
+  let insertIndex = 1
+  let bestDistance = Infinity
+  for (let i = 0; i < points.length - 1; i++) {
+    const dist = distanceToSegment(x, y, points[i][0], points[i][1], points[i + 1][0], points[i + 1][1])
+    if (dist < bestDistance) {
+      bestDistance = dist
+      insertIndex = i + 1
+    }
+  }
+  points.splice(insertIndex, 0, [x, y])
+  return { points, ...getBoundsFromPoints(points) } as Partial<Element>
+}
+
+function distanceToSegment(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
+  const dx = x2 - x1
+  const dy = y2 - y1
+  const lenSq = dx * dx + dy * dy
+  if (lenSq === 0) return Math.hypot(px - x1, py - y1)
+  const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / lenSq))
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy))
+}
+
 function makeGhostElement(d: DrawState): Element {
   const x = Math.min(d.sx, d.cx), y = Math.min(d.sy, d.cy)
   const w = Math.abs(d.cx - d.sx), h = Math.abs(d.cy - d.sy)
@@ -565,13 +644,16 @@ function makeShapeElement(type: string, x: number, y: number, w: number, h: numb
 }
 
 function makeLinearElement(type: 'line' | 'arrow', x1: number, y1: number, x2: number, y2: number, p: any): Element {
+  const points: [number, number][] = type === 'arrow'
+    ? [[x1, y1], [(x1 + x2) / 2, (y1 + y2) / 2], [x2, y2]]
+    : [[x1, y1], [x2, y2]]
   return { id: generateId(), type, x: Math.min(x1, x2), y: Math.min(y1, y2),
     width: Math.abs(x2 - x1), height: Math.abs(y2 - y1), angle: 0,
     strokeColor: p.currentStrokeColor, backgroundColor: 'transparent', fillStyle: 'solid',
     strokeWidth: p.currentStrokeWidth, strokeStyle: p.currentStrokeStyle,
     roughness: p.currentRoughness, opacity: p.currentOpacity, seed: Math.random() * 100000 | 0,
     locked: false, groupIds: [], frameId: null, boundElements: null,
-    points: [[x1, y1], [x2, y2]], startArrowhead: 'none', endArrowhead: type === 'arrow' ? 'arrow' : 'none' } as Element
+    points, startArrowhead: 'none', endArrowhead: type === 'arrow' ? 'arrow' : 'none' } as Element
 }
 
 function calcResize(handle: string, el: Element, dx: number, dy: number): Partial<Element> {

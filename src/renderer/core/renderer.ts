@@ -346,6 +346,20 @@ export function renderSelectionBox(ctx: CanvasRenderingContext2D, el: Element) {
     ctx.fill(); ctx.stroke()
   }
 
+  if (el.type === 'arrow') {
+    const points = ((el as any).points || []) as [number, number][]
+    for (let i = 0; i < points.length; i++) {
+      const [px, py] = points[i]
+      ctx.beginPath()
+      ctx.arc(px, py, i === 0 || i === points.length - 1 ? 5 : 4, 0, Math.PI * 2)
+      ctx.fillStyle = '#fff'
+      ctx.strokeStyle = SELECTION_COLOR
+      ctx.lineWidth = 1.8
+      ctx.fill()
+      ctx.stroke()
+    }
+  }
+
   // Rotation handle
   const rx = el.x + el.width / 2, ry = el.y - 28
   ctx.beginPath()
