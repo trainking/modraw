@@ -5,7 +5,7 @@ import { saveFiles, loadFiles, setRecentFileId } from '../core/persistence'
 
 interface HistoryEntry { elements: Element[] }
 
-interface SceneState {
+export interface SceneState {
   files: SceneFile[]
   activeFileId: string | null
   history: HistoryEntry[]
@@ -153,8 +153,18 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   }
 }))
 
-// Auto-save to localStorage
+export const selectActiveElements = (state: SceneState): Element[] => {
+  return state.files.find((f) => f.id === state.activeFileId)?.elements || []
+}
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null
+
+// Auto-save to localStorage. Debounce it so drag/resize/rotate updates do not
+// block pointer movement with repeated JSON serialization.
 useSceneStore.subscribe((state) => {
-  saveFiles(state.files)
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    saveFiles(state.files)
+  }, 250)
   if (state.activeFileId) setRecentFileId(state.activeFileId)
 })

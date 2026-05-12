@@ -1,5 +1,5 @@
 import { useAppStore } from '../stores/app'
-import { useSceneStore } from '../stores/scene'
+import { selectActiveElements, useSceneStore } from '../stores/scene'
 import { Element } from '../types'
 import { getTextElementSize } from '../utils/text'
 
@@ -16,7 +16,7 @@ const ROUGHNESS_LEVELS = [0, 1, 2, 3]
 
 export function PropertiesPanel() {
   const selectedIds = useAppStore((s) => s.selectedIds)
-  const getElements = useSceneStore((s) => s.getElements)
+  const elements = useSceneStore(selectActiveElements)
   const updateElement = useSceneStore((s) => s.updateElement)
   const pushHistory = useSceneStore((s) => s.pushHistory)
   const setCurrentItemProp = useAppStore((s) => s.setCurrentItemProp)
@@ -27,7 +27,6 @@ export function PropertiesPanel() {
   const currentFillStyle = useAppStore((s) => s.currentItemFillStyle)
   const currentStrokeStyle = useAppStore((s) => s.currentItemStrokeStyle)
 
-  const elements = getElements()
   const el = selectedIds.length === 1 ? elements.find((e) => e.id === selectedIds[0]) : null
   if (!el) return null
 

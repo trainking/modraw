@@ -1,13 +1,12 @@
 import { useAppStore } from '../stores/app'
-import { useSceneStore } from '../stores/scene'
+import { selectActiveElements, useSceneStore } from '../stores/scene'
 
 export function Footer() {
   const camera = useAppStore((s) => s.camera)
   const selectedIds = useAppStore((s) => s.selectedIds)
   const activeTool = useAppStore((s) => s.activeTool)
-  const getElements = useSceneStore((s) => s.getElements)
+  const elements = useSceneStore(selectActiveElements)
 
-  const elements = getElements()
   const zoom = Math.round(camera.zoom * 100)
 
   const toolHints: Record<string, string> = {

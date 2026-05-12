@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { useAppStore } from '../stores/app'
-import { useSceneStore } from '../stores/scene'
+import { selectActiveElements, useSceneStore } from '../stores/scene'
 import { renderStaticScene, renderInteractiveScene } from '../core/renderer'
 import { screenToScene } from '../utils/geometry'
 import { hitTest, hitTestHandle } from '../core/hitTest'
@@ -31,7 +31,7 @@ export function Canvas() {
   const currentFontSize = useAppStore((s) => s.currentItemFontSize)
   const currentFontFamily = useAppStore((s) => s.currentItemFontFamily)
 
-  const getElements = useSceneStore((s) => s.getElements)
+  const elements = useSceneStore(selectActiveElements)
   const addElement = useSceneStore((s) => s.addElement)
   const updateElement = useSceneStore((s) => s.updateElement)
   const deleteElements = useSceneStore((s) => s.deleteElements)
@@ -51,7 +51,6 @@ export function Canvas() {
   const [editingTextEl, setEditingTextEl] = useState<Element | null>(null)
   const [editTextValue, setEditTextValue] = useState('')
 
-  const elements = getElements()
   const effectiveTool = spaceHeld ? 'hand' : activeTool
 
   const getCanvasSize = useCallback(() => {
@@ -403,7 +402,7 @@ export function Canvas() {
             if (selected.length > 0) {
               pushHistory()
               const copies = selected.map((el) => duplicateElement(el))
-              setElements([...getElements(), ...copies])
+              setElements([...elements, ...copies])
               setSelection(copies.map((el) => el.id))
             }
             closeContextMenu()
@@ -412,7 +411,7 @@ export function Canvas() {
             Duplicate
           </div>
           <div className="context-menu-separator" />
-          <div className="context-menu-item" onClick={() => { const els = getElements(); const el = els.find((e) => e.id === selectedIds[0]); if (el) { pushHistory(); updateElement(el.id, { locked: !el.locked }) }; closeContextMenu() }}>
+          <div className="context-menu-item" onClick={() => { const el = elements.find((e) => e.id === selectedIds[0]); if (el) { pushHistory(); updateElement(el.id, { locked: !el.locked }) }; closeContextMenu() }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
             Toggle Lock
           </div>
