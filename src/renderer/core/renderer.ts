@@ -346,7 +346,7 @@ export function renderSelectionBox(ctx: CanvasRenderingContext2D, el: Element) {
     ctx.fill(); ctx.stroke()
   }
 
-  if (el.type === 'arrow') {
+  if (el.type === 'arrow' || el.type === 'line') {
     const points = ((el as any).points || []) as [number, number][]
     for (let i = 0; i < points.length; i++) {
       const [px, py] = points[i]

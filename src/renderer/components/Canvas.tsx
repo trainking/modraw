@@ -158,7 +158,7 @@ export function Canvas() {
       if (selectedIds.length === 1) {
         const selEl = elements.find((el) => el.id === selectedIds[0])
         if (selEl) {
-          const pointIndex = selEl.type === 'arrow' ? hitTestPointHandle(pos.x, pos.y, selEl) : -1
+          const pointIndex = selEl.type === 'arrow' || selEl.type === 'line' ? hitTestPointHandle(pos.x, pos.y, selEl) : -1
           if (pointIndex >= 0 && !selEl.locked) {
             pushHistory()
             setEditingPoint({ elId: selEl.id, pointIndex, points: clonePoints((selEl as any).points || []) })
@@ -463,7 +463,7 @@ export function Canvas() {
               <div className="context-menu-separator" />
             </>
           )}
-          {ctxEl && ctxEl.type === 'arrow' && (
+          {ctxEl && (ctxEl.type === 'arrow' || ctxEl.type === 'line') && (
             <>
               <div className="context-menu-item" onClick={() => {
                 pushHistory()
@@ -644,9 +644,7 @@ function makeShapeElement(type: string, x: number, y: number, w: number, h: numb
 }
 
 function makeLinearElement(type: 'line' | 'arrow', x1: number, y1: number, x2: number, y2: number, p: any): Element {
-  const points: [number, number][] = type === 'arrow'
-    ? [[x1, y1], [(x1 + x2) / 2, (y1 + y2) / 2], [x2, y2]]
-    : [[x1, y1], [x2, y2]]
+  const points: [number, number][] = [[x1, y1], [(x1 + x2) / 2, (y1 + y2) / 2], [x2, y2]]
   return { id: generateId(), type, x: Math.min(x1, x2), y: Math.min(y1, y2),
     width: Math.abs(x2 - x1), height: Math.abs(y2 - y1), angle: 0,
     strokeColor: p.currentStrokeColor, backgroundColor: 'transparent', fillStyle: 'solid',

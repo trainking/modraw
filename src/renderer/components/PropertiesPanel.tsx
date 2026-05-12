@@ -309,6 +309,98 @@ export function PropertiesPanel() {
     )
   }
 
+  if (el.type === 'line') {
+    return (
+      <div className="w-[204px] island p-3 flex flex-col gap-3 text-sm select-none overflow-y-auto z-50 max-h-[calc(100vh-96px)]">
+        <PanelSection label="描边">
+          <div className="flex gap-1.5 flex-wrap">
+            {STROKE_COLORS.map((color) => (
+              <ColorButton
+                key={color}
+                color={color}
+                selected={el.strokeColor === color}
+                onClick={() => { update({ strokeColor: color }); setCurrentItemProp('currentItemStrokeColor', color) }}
+              />
+            ))}
+          </div>
+        </PanelSection>
+
+        <PanelSection label="描边宽度">
+          <IconButtonRow>
+            {STROKE_WIDTHS.map((width) => (
+              <IconButton
+                key={width}
+                selected={el.strokeWidth === width}
+                title={`${width}px`}
+                onClick={() => { update({ strokeWidth: width }); setCurrentItemProp('currentItemStrokeWidth', width) }}
+              >
+                <LineIcon width={width} />
+              </IconButton>
+            ))}
+          </IconButtonRow>
+        </PanelSection>
+
+        <PanelSection label="边框样式">
+          <IconButtonRow>
+            {(['solid', 'dashed', 'dotted'] as const).map((style) => (
+              <IconButton
+                key={style}
+                selected={el.strokeStyle === style}
+                title={style}
+                onClick={() => { update({ strokeStyle: style }); setCurrentItemProp('currentItemStrokeStyle', style) }}
+              >
+                <BorderStyleIcon style={style} />
+              </IconButton>
+            ))}
+          </IconButtonRow>
+        </PanelSection>
+
+        <PanelSection label="线条风格">
+          <IconButtonRow>
+            {ROUGHNESS_LEVELS.map((roughness) => (
+              <IconButton
+                key={roughness}
+                selected={el.roughness === roughness}
+                title={`roughness ${roughness}`}
+                onClick={() => { update({ roughness }); setCurrentItemProp('currentItemRoughness', roughness) }}
+              >
+                <RoughnessIcon roughness={roughness} />
+              </IconButton>
+            ))}
+          </IconButtonRow>
+        </PanelSection>
+
+        <PanelSection label="透明度">
+          <div className="flex flex-col gap-1">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={el.opacity}
+              onPointerDown={() => pushHistory()}
+              onChange={(e) => update({ opacity: Number(e.target.value) }, false)}
+              className="w-full accent-[var(--color-primary)]"
+            />
+            <div className="flex justify-between text-[11px] text-[var(--color-text-muted)]">
+              <span>0</span>
+              <span>100</span>
+            </div>
+          </div>
+        </PanelSection>
+
+        <PanelSection label="图层">
+          <IconButtonRow>
+            <IconButton title="置于底层" onClick={() => moveLayer('back')}><LayerIcon action="back" /></IconButton>
+            <IconButton title="下移一层" onClick={() => moveLayer('backward')}><LayerIcon action="backward" /></IconButton>
+            <IconButton title="上移一层" onClick={() => moveLayer('forward')}><LayerIcon action="forward" /></IconButton>
+            <IconButton title="置于顶层" onClick={() => moveLayer('front')}><LayerIcon action="front" /></IconButton>
+          </IconButtonRow>
+        </PanelSection>
+      </div>
+    )
+  }
+
   return (
     <div className="w-56 island p-3 flex flex-col gap-4 text-sm select-none overflow-y-auto z-50">
       <h3 className="text-[var(--color-text-dim)] text-xs font-semibold uppercase tracking-wider">Properties</h3>
