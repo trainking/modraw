@@ -197,7 +197,11 @@ export function renderElement(ctx: CanvasRenderingContext2D, el: Element) {
         if (el.type === 'arrow') {
           const last = pts[pts.length - 1]
           const prev = pts[pts.length - 2]
-          drawArrowHead(ctx, prev[0], prev[1], last[0], last[1], el.strokeColor, alpha)
+          const first = pts[0]
+          const second = pts[1]
+          const linear = el as any
+          drawArrowTerminator(ctx, second[0], second[1], first[0], first[1], linear.startArrowhead || 'none', el.strokeColor, alpha, el.strokeWidth)
+          drawArrowTerminator(ctx, prev[0], prev[1], last[0], last[1], linear.endArrowhead || 'arrow', el.strokeColor, alpha, el.strokeWidth)
         }
       }
       break
@@ -258,22 +262,58 @@ function roundedDiamondPath(cx: number, cy: number, hw: number, hh: number, radi
   return `M ${cx - r} ${cy - hh + r} Q ${cx} ${cy - hh} ${cx + r} ${cy - hh + r} L ${cx + hw - r} ${cy - r} Q ${cx + hw} ${cy} ${cx + hw - r} ${cy + r} L ${cx + r} ${cy + hh - r} Q ${cx} ${cy + hh} ${cx - r} ${cy + hh - r} L ${cx - hw + r} ${cy + r} Q ${cx - hw} ${cy} ${cx - hw + r} ${cy - r} Z`
 }
 
-function drawArrowHead(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, color: string, alpha?: number) {
+function drawArrowTerminator(
+  ctx: CanvasRenderingContext2D,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  type: 'none' | 'arrow' | 'bar' | 'dot' | 'triangle',
+  color: string,
+  alpha?: number,
+  strokeWidth = 2
+) {
+  if (type === 'none') return
   if (alpha !== undefined) ctx.globalAlpha = alpha
-  const headLen = Math.min(14, Math.hypot(x2 - x1, y2 - y1) / 3)
+  const headLen = Math.max(10, Math.min(18, Math.hypot(x2 - x1, y2 - y1) / 3))
   const angle = Math.atan2(y2 - y1, x2 - x1)
   const xL = x2 - headLen * Math.cos(angle - Math.PI / 6)
   const yL = y2 - headLen * Math.sin(angle - Math.PI / 6)
   const xR = x2 - headLen * Math.cos(angle + Math.PI / 6)
   const yR = y2 - headLen * Math.sin(angle + Math.PI / 6)
 
-  ctx.beginPath()
-  ctx.moveTo(x2, y2)
-  ctx.lineTo(xL, yL)
-  ctx.lineTo(xR, yR)
-  ctx.closePath()
+  ctx.strokeStyle = color
   ctx.fillStyle = color
-  ctx.fill()
+  ctx.lineWidth = strokeWidth
+  ctx.setLineDash([])
+
+  if (type === 'arrow') {
+    ctx.beginPath()
+    ctx.moveTo(xL, yL)
+    ctx.lineTo(x2, y2)
+    ctx.lineTo(xR, yR)
+    ctx.stroke()
+  } else if (type === 'triangle') {
+    ctx.beginPath()
+    ctx.moveTo(x2, y2)
+    ctx.lineTo(xL, yL)
+    ctx.lineTo(xR, yR)
+    ctx.closePath()
+    ctx.fill()
+  } else if (type === 'bar') {
+    const half = headLen * 0.45
+    const bx = Math.cos(angle + Math.PI / 2) * half
+    const by = Math.sin(angle + Math.PI / 2) * half
+    ctx.beginPath()
+    ctx.moveTo(x2 - bx, y2 - by)
+    ctx.lineTo(x2 + bx, y2 + by)
+    ctx.stroke()
+  } else if (type === 'dot') {
+    ctx.beginPath()
+    ctx.arc(x2, y2, Math.max(3, strokeWidth * 1.5), 0, Math.PI * 2)
+    ctx.fill()
+  }
+
   if (alpha !== undefined) ctx.globalAlpha = 1
 }
 

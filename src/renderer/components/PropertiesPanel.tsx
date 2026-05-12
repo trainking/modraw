@@ -186,6 +186,129 @@ export function PropertiesPanel() {
     )
   }
 
+  if (el.type === 'arrow') {
+    const arrow = el as any
+    return (
+      <div className="w-[204px] island p-3 flex flex-col gap-3 text-sm select-none overflow-y-auto z-50 max-h-[calc(100vh-96px)]">
+        <PanelSection label="描边">
+          <div className="flex gap-1.5 flex-wrap">
+            {STROKE_COLORS.map((color) => (
+              <ColorButton
+                key={color}
+                color={color}
+                selected={el.strokeColor === color}
+                onClick={() => { update({ strokeColor: color }); setCurrentItemProp('currentItemStrokeColor', color) }}
+              />
+            ))}
+          </div>
+        </PanelSection>
+
+        <PanelSection label="描边宽度">
+          <IconButtonRow>
+            {STROKE_WIDTHS.map((width) => (
+              <IconButton
+                key={width}
+                selected={el.strokeWidth === width}
+                title={`${width}px`}
+                onClick={() => { update({ strokeWidth: width }); setCurrentItemProp('currentItemStrokeWidth', width) }}
+              >
+                <LineIcon width={width} />
+              </IconButton>
+            ))}
+          </IconButtonRow>
+        </PanelSection>
+
+        <PanelSection label="边框样式">
+          <IconButtonRow>
+            {(['solid', 'dashed', 'dotted'] as const).map((style) => (
+              <IconButton
+                key={style}
+                selected={el.strokeStyle === style}
+                title={style}
+                onClick={() => { update({ strokeStyle: style }); setCurrentItemProp('currentItemStrokeStyle', style) }}
+              >
+                <BorderStyleIcon style={style} />
+              </IconButton>
+            ))}
+          </IconButtonRow>
+        </PanelSection>
+
+        <PanelSection label="线条风格">
+          <IconButtonRow>
+            {ROUGHNESS_LEVELS.map((roughness) => (
+              <IconButton
+                key={roughness}
+                selected={el.roughness === roughness}
+                title={`roughness ${roughness}`}
+                onClick={() => { update({ roughness }); setCurrentItemProp('currentItemRoughness', roughness) }}
+              >
+                <RoughnessIcon roughness={roughness} />
+              </IconButton>
+            ))}
+          </IconButtonRow>
+        </PanelSection>
+
+        <PanelSection label="箭头类型">
+          <IconButtonRow>
+            {(['arrow', 'triangle', 'bar'] as const).map((type) => (
+              <IconButton
+                key={type}
+                selected={(arrow.endArrowhead || 'arrow') === type}
+                title={type}
+                onClick={() => update({ endArrowhead: type } as Partial<Element>)}
+              >
+                <ArrowHeadIcon type={type} />
+              </IconButton>
+            ))}
+          </IconButtonRow>
+        </PanelSection>
+
+        <PanelSection label="端点">
+          <IconButtonRow>
+            {(['none', 'arrow'] as const).map((type) => (
+              <IconButton
+                key={type}
+                selected={(arrow.startArrowhead || 'none') === type}
+                title={type}
+                onClick={() => update({ startArrowhead: type } as Partial<Element>)}
+              >
+                <EndpointIcon type={type} />
+              </IconButton>
+            ))}
+          </IconButtonRow>
+        </PanelSection>
+
+        <PanelSection label="透明度">
+          <div className="flex flex-col gap-1">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={el.opacity}
+              onPointerDown={() => pushHistory()}
+              onChange={(e) => update({ opacity: Number(e.target.value) }, false)}
+              className="w-full accent-[var(--color-primary)]"
+            />
+            <div className="flex justify-between text-[11px] text-[var(--color-text-muted)]">
+              <span>0</span>
+              <span>100</span>
+            </div>
+          </div>
+        </PanelSection>
+
+        <PanelSection label="图层">
+          <IconButtonRow>
+            <IconButton title="置于底层" onClick={() => moveLayer('back')}><LayerIcon action="back" /></IconButton>
+            <IconButton title="下移一层" onClick={() => moveLayer('backward')}><LayerIcon action="backward" /></IconButton>
+            <IconButton title="上移一层" onClick={() => moveLayer('forward')}><LayerIcon action="forward" /></IconButton>
+            <IconButton title="置于顶层" onClick={() => moveLayer('front')}><LayerIcon action="front" /></IconButton>
+          </IconButtonRow>
+        </PanelSection>
+      </div>
+    )
+  }
+
   return (
     <div className="w-56 island p-3 flex flex-col gap-4 text-sm select-none overflow-y-auto z-50">
       <h3 className="text-[var(--color-text-dim)] text-xs font-semibold uppercase tracking-wider">Properties</h3>
@@ -473,6 +596,35 @@ function CornerIcon({ rounded }: { rounded: boolean }) {
   return (
     <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
       {rounded ? <path d="M6 16V8a2 2 0 012-2h8" strokeDasharray="2 2" /> : <path d="M6 16V6h10" strokeDasharray="2 2" />}
+    </svg>
+  )
+}
+
+function ArrowHeadIcon({ type }: { type: 'arrow' | 'triangle' | 'bar' }) {
+  return (
+    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 18L18 6" />
+      {type === 'arrow' && <path d="M12 6h6v6" />}
+      {type === 'triangle' && <path d="M18 6l-2 7-5-5z" fill="currentColor" stroke="none" />}
+      {type === 'bar' && <path d="M18 6v7" />}
+    </svg>
+  )
+}
+
+function EndpointIcon({ type }: { type: 'none' | 'arrow' }) {
+  return (
+    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {type === 'none' ? (
+        <>
+          <path d="M8 8l8 8" opacity="0.35" />
+          <path d="M16 8l-8 8" opacity="0.35" />
+        </>
+      ) : (
+        <>
+          <path d="M6 12h12" />
+          <path d="M14 8l4 4-4 4" />
+        </>
+      )}
     </svg>
   )
 }
