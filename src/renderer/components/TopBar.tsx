@@ -5,6 +5,7 @@ import { exportToPng, exportToSvg } from '../core/export'
 import { openMdrFile } from '../core/mdr'
 import { useT } from '../i18n'
 import { ToolType } from '../types'
+import { GRID_SIZE } from '../utils/constants'
 
 export function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -13,9 +14,11 @@ export function TopBar() {
   const activeTool = useAppStore((s) => s.activeTool)
   const toolLocked = useAppStore((s) => s.toolLocked)
   const language = useAppStore((s) => s.language)
+  const gridSize = useAppStore((s) => s.gridSize)
   const setTool = useAppStore((s) => s.setTool)
   const setToolLocked = useAppStore((s) => s.setToolLocked)
   const setLanguage = useAppStore((s) => s.setLanguage)
+  const setCurrentItemProp = useAppStore((s) => s.setCurrentItemProp)
   const setViewMode = useAppStore((s) => s.setViewMode)
   const clearSelection = useAppStore((s) => s.clearSelection)
 
@@ -115,6 +118,15 @@ export function TopBar() {
             <div className="context-menu-item" onClick={() => { exportToSvg(elements); setMenuOpen(false) }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
               {t('exportSvg')}
+            </div>
+            <div className="context-menu-separator" />
+            <div
+              className="context-menu-item"
+              onClick={() => setCurrentItemProp('gridSize', gridSize ? null : GRID_SIZE)}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16v16H4z"/><path d="M4 10h16M4 16h16M10 4v16M16 4v16"/></svg>
+              <span className="flex-1">{t('canvasBackground')}</span>
+              <span className="text-xs text-[var(--color-text-muted)]">{gridSize ? t('grid') : t('whiteboard')}</span>
             </div>
             <div className="context-menu-separator" />
             <div className="context-menu-item cursor-default" onClick={(e) => e.stopPropagation()}>

@@ -6,8 +6,8 @@ let generator = rough.generator()
 const imageCache = new Map<string, HTMLImageElement>()
 const loadingImages = new Set<string>()
 
-export function drawGrid(ctx: CanvasRenderingContext2D, camera: Camera, w: number, h: number) {
-  const gridSpacing = GRID_SIZE * camera.zoom
+export function drawGrid(ctx: CanvasRenderingContext2D, camera: Camera, w: number, h: number, gridSize = GRID_SIZE) {
+  const gridSpacing = gridSize * camera.zoom
   if (gridSpacing < 7) return
 
   const leftScene = camera.x - w / (2 * camera.zoom)
@@ -15,8 +15,8 @@ export function drawGrid(ctx: CanvasRenderingContext2D, camera: Camera, w: numbe
   const rightScene = camera.x + w / (2 * camera.zoom)
   const bottomScene = camera.y + h / (2 * camera.zoom)
 
-  const startX = Math.ceil(leftScene / GRID_SIZE) * GRID_SIZE
-  const startY = Math.ceil(topScene / GRID_SIZE) * GRID_SIZE
+  const startX = Math.ceil(leftScene / gridSize) * gridSize
+  const startY = Math.ceil(topScene / gridSize) * gridSize
 
   ctx.strokeStyle = GRID_COLOR
   ctx.lineWidth = 1
@@ -26,11 +26,11 @@ export function drawGrid(ctx: CanvasRenderingContext2D, camera: Camera, w: numbe
   ctx.scale(camera.zoom, camera.zoom)
   ctx.translate(-camera.x, -camera.y)
 
-  for (let x = startX; x <= rightScene; x += GRID_SIZE) {
+  for (let x = startX; x <= rightScene; x += gridSize) {
     ctx.moveTo(x, topScene)
     ctx.lineTo(x, bottomScene)
   }
-  for (let y = startY; y <= bottomScene; y += GRID_SIZE) {
+  for (let y = startY; y <= bottomScene; y += gridSize) {
     ctx.moveTo(leftScene, y)
     ctx.lineTo(rightScene, y)
   }
@@ -421,13 +421,14 @@ export function renderStaticScene(
   selectedIds: string[],
   camera: Camera,
   width: number,
-  height: number
+  height: number,
+  gridSize: number | null
 ) {
   ctx.clearRect(0, 0, width, height)
   ctx.fillStyle = CANVAS_BG
   ctx.fillRect(0, 0, width, height)
 
-  drawGrid(ctx, camera, width, height)
+  if (gridSize) drawGrid(ctx, camera, width, height, gridSize)
 
   ctx.save()
   ctx.translate(width / 2, height / 2)

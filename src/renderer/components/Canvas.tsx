@@ -20,6 +20,7 @@ export function Canvas() {
   const toolLocked = useAppStore((s) => s.toolLocked)
   const selectedIds = useAppStore((s) => s.selectedIds)
   const camera = useAppStore((s) => s.camera)
+  const gridSize = useAppStore((s) => s.gridSize)
   const setTool = useAppStore((s) => s.setTool)
   const setCamera = useAppStore((s) => s.setCamera)
   const setSelection = useAppStore((s) => s.setSelection)
@@ -83,8 +84,8 @@ export function Canvas() {
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    renderStaticScene(ctx, elements, selectedIds, camera, canvas.width, canvas.height)
-  }, [elements, selectedIds, camera])
+    renderStaticScene(ctx, elements, selectedIds, camera, canvas.width, canvas.height, gridSize)
+  }, [elements, selectedIds, camera, gridSize])
 
   const drawInteractive = useCallback(() => {
     const canvas = interactiveCanvasRef.current
