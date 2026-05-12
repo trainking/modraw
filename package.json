@@ -34,11 +34,15 @@
   "build": {
     "appId": "com.modraw.app",
     "productName": "Modraw",
+    "icon": "build/icon.ico",
     "directories": {
       "output": "release"
     },
     "files": [
       "out/**",
+      "build/icon.ico",
+      "build/icon.png",
+      "build/icon.svg",
       "package.json"
     ],
     "asar": true,

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#1e1e1e" flood-opacity="0.14"/>
+    </filter>
+    <filter id="markShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#1e1e1e" flood-opacity="0.14"/>
+    </filter>
+    <linearGradient id="brushBlue" x1="328" y1="760" x2="696" y2="760" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1971c2"/>
+      <stop offset="0.55" stop-color="#228be6"/>
+      <stop offset="1" stop-color="#4dabf7"/>
+    </linearGradient>
+  </defs>
+  <rect x="96" y="96" width="832" height="832" rx="220" fill="#ffffff" filter="url(#cardShadow)"/>
+  <rect x="120" y="120" width="784" height="784" rx="198" fill="none" stroke="#f0f0f0" stroke-width="6"/>
+  <path d="M284 702V322c0-34 22-56 56-56h24c24 0 42 11 56 32l92 142 92-142c14-21 32-32 56-32h24c34 0 56 22 56 56v380h-104V430L548 562h-72L388 430v272H284z" fill="#111111" filter="url(#markShadow)"/>
+  <g filter="url(#markShadow)">
+    <path d="M342 759c82-42 224-49 350-13" fill="none" stroke="url(#brushBlue)" stroke-width="34" stroke-linecap="round"/>
+    <path d="M688 746l56 22-55 25c10-18 10-32-1-47z" fill="#1971c2"/>
+    <path d="M302 776c22-28 37-39 58-39 20 0 35 16 31 35-6 29-45 49-106 55 2-18 8-35 17-51z" fill="#74c0fc"/>
+    <path d="M331 782c12-14 22-20 34-18 9 1 14 8 12 16-3 13-21 23-50 28 1-9 3-18 4-26z" fill="#ffffff" opacity="0.9"/>
+  </g>
+</svg>
