@@ -77,15 +77,15 @@ export function Toolbar() {
   const t = useT()
 
   const tools: { type: ToolType; label: string; shortcut: string }[] = [
-    { type: 'select', label: t('select'), shortcut: 'V' },
-    { type: 'rectangle', label: t('rectangle'), shortcut: 'R' },
-    { type: 'diamond', label: t('diamond'), shortcut: 'D' },
-    { type: 'ellipse', label: t('ellipse'), shortcut: 'E' },
-    { type: 'arrow', label: t('arrow'), shortcut: 'A' },
-    { type: 'line', label: t('line'), shortcut: 'L' },
-    { type: 'freedraw', label: t('freedraw'), shortcut: 'P' },
-    { type: 'text', label: t('text'), shortcut: 'T' },
-    { type: 'image', label: t('image'), shortcut: 'I' },
+    { type: 'select', label: t('select'), shortcut: '1' },
+    { type: 'rectangle', label: t('rectangle'), shortcut: '2' },
+    { type: 'diamond', label: t('diamond'), shortcut: '3' },
+    { type: 'ellipse', label: t('ellipse'), shortcut: '4' },
+    { type: 'arrow', label: t('arrow'), shortcut: '5' },
+    { type: 'line', label: t('line'), shortcut: '6' },
+    { type: 'freedraw', label: t('freedraw'), shortcut: '7' },
+    { type: 'text', label: t('text'), shortcut: '8' },
+    { type: 'image', label: t('image'), shortcut: '9' },
     { type: 'frame', label: t('frame'), shortcut: 'F' },
     { type: 'eraser', label: t('eraser'), shortcut: 'X' },
     { type: 'hand', label: t('hand'), shortcut: 'H' },
@@ -109,6 +109,9 @@ export function Toolbar() {
             title={`${tool.label} (${tool.shortcut})`}
           >
             <ToolIcon type={tool.type} />
+            {tool.shortcut >= '1' && tool.shortcut <= '9' && (
+              <span className="tool-shortcut-badge">{tool.shortcut}</span>
+            )}
           </button>
         ))}
       </div>

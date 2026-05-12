@@ -81,6 +81,17 @@ html, body, #root {
   width: 20px;
   height: 20px;
 }
+.tool-shortcut-badge {
+  position: absolute;
+  right: 4px;
+  bottom: 2px;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 700;
+  color: currentColor;
+  opacity: 0.65;
+  pointer-events: none;
+}
 
 .floating-control-btn {
   display: flex;

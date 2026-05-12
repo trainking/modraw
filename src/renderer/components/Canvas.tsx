@@ -401,7 +401,20 @@ export function Canvas() {
       const k = e.key.toLowerCase()
       if (k === ' ') { e.preventDefault(); setSpaceHeld(true); return }
       // Tool shortcuts
-      const map: Record<string, string> = { v:'select', r:'rectangle', d:'diamond', e:'ellipse', a:'arrow', l:'line', p:'freedraw', t:'text', i:'image', f:'frame', x:'eraser', h:'hand' }
+      const map: Record<string, string> = {
+        '1': 'select',
+        '2': 'rectangle',
+        '3': 'diamond',
+        '4': 'ellipse',
+        '5': 'arrow',
+        '6': 'line',
+        '7': 'freedraw',
+        '8': 'text',
+        '9': 'image',
+        f: 'frame',
+        x: 'eraser',
+        h: 'hand'
+      }
       if (map[k]) { setTool(map[k] as any); return }
       if (k === 'delete' || k === 'backspace') { const ids = useAppStore.getState().selectedIds; if (ids.length > 0) { deleteElements(ids); clearSelection() } return }
       if (k === 'escape') { clearSelection(); return }
