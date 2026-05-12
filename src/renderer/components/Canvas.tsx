@@ -12,6 +12,8 @@ export function Canvas() {
   const staticCanvasRef = useRef<HTMLCanvasElement>(null)
   const interactiveCanvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const pendingImagePosRef = useRef<{ x: number; y: number } | null>(null)
 
   const activeTool = useAppStore((s) => s.activeTool)
   const toolLocked = useAppStore((s) => s.toolLocked)
@@ -117,6 +119,15 @@ export function Canvas() {
     return () => observer.disconnect()
   }, [])
 
+  useEffect(() => {
+    const redraw = () => {
+      drawStatic()
+      drawInteractive()
+    }
+    window.addEventListener('modraw:image-loaded', redraw)
+    return () => window.removeEventListener('modraw:image-loaded', redraw)
+  }, [drawStatic, drawInteractive])
+
   const getScenePos = useCallback((e: React.MouseEvent) => {
     const c = staticCanvasRef.current
     if (!c) return { x: 0, y: 0 }
@@ -205,6 +216,13 @@ export function Canvas() {
       addElement(el)
       setSelection([el.id])
       if (!toolLocked) setTool('select')
+      return
+    }
+
+    if (effectiveTool === 'image') {
+      clearSelection()
+      pendingImagePosRef.current = pos
+      imageInputRef.current?.click()
       return
     }
 
@@ -353,6 +371,36 @@ export function Canvas() {
 
   const closeContextMenu = useCallback(() => setContextMenu(null), [])
 
+  const handleImageSelected = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    const pos = pendingImagePosRef.current
+    pendingImagePosRef.current = null
+    if (!file || !pos) return
+
+    try {
+      const image = await readImageFile(file)
+      const maxInitialSize = 360
+      const scale = Math.min(1, maxInitialSize / Math.max(image.width, image.height))
+      const width = Math.max(1, Math.round(image.width * scale))
+      const height = Math.max(1, Math.round(image.height * scale))
+      const el: Element = {
+        id: generateId(), type: 'image',
+        x: pos.x, y: pos.y, width, height,
+        angle: 0, strokeColor: 'transparent', backgroundColor: 'transparent',
+        fillStyle: 'solid', strokeWidth: 1, strokeStyle: 'solid',
+        roughness: 0, opacity: currentOpacity, seed: Math.random() * 100000 | 0,
+        locked: false, groupIds: [], frameId: null, boundElements: null,
+        fileId: generateId(), dataUrl: image.dataUrl, scale: [1, 1], status: 'saved'
+      } as Element
+      addElement(el)
+      setSelection([el.id])
+      if (!toolLocked) setTool('select')
+    } catch {
+      // Ignore unsupported or unreadable image files.
+    }
+  }, [addElement, currentOpacity, setSelection, setTool, toolLocked])
+
   useEffect(() => {
     if (contextMenu) {
       const close = () => setContextMenu(null)
@@ -365,6 +413,13 @@ export function Canvas() {
 
   return (
     <div ref={containerRef} className="flex-1 relative overflow-hidden bg-[var(--color-darkest)]">
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+        className="hidden"
+        onChange={handleImageSelected}
+      />
       <canvas ref={staticCanvasRef} className="absolute inset-0" style={{ zIndex: 1 }} />
       <canvas
         ref={interactiveCanvasRef}
@@ -453,6 +508,21 @@ export function Canvas() {
 interface DrawState { type: string; sx: number; sy: number; cx: number; cy: number }
 interface MoveState { sx: number; sy: number; origins: Map<string, { x: number; y: number; points?: [number, number][] }> }
 interface ResizeState { handle: string; sx: number; sy: number; el: Element }
+
+function readImageFile(file: File): Promise<{ dataUrl: string; width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(reader.error)
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '')
+      const image = new Image()
+      image.onload = () => resolve({ dataUrl, width: image.naturalWidth, height: image.naturalHeight })
+      image.onerror = reject
+      image.src = dataUrl
+    }
+    reader.readAsDataURL(file)
+  })
+}
 
 function clonePoints(points: [number, number][]): [number, number][] {
   return points.map(([x, y]) => [x, y])

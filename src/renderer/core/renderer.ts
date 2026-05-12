@@ -3,6 +3,8 @@ import { Element, Camera } from '../types'
 import { GRID_COLOR, GRID_SIZE, SELECTION_COLOR, HANDLE_SIZE, CANVAS_BG } from '../utils/constants'
 
 let generator = rough.generator()
+const imageCache = new Map<string, HTMLImageElement>()
+const loadingImages = new Set<string>()
 
 export function drawGrid(ctx: CanvasRenderingContext2D, camera: Camera, w: number, h: number) {
   const gridSpacing = GRID_SIZE * camera.zoom
@@ -84,6 +86,26 @@ function applyStrokeStyle(ctx: CanvasRenderingContext2D, style?: string) {
   if (style === 'dashed') ctx.setLineDash([8, 4])
   else if (style === 'dotted') ctx.setLineDash([2, 4])
   else ctx.setLineDash([])
+}
+
+function getCachedImage(dataUrl: string): HTMLImageElement | null {
+  const cached = imageCache.get(dataUrl)
+  if (cached) return cached
+  if (loadingImages.has(dataUrl)) return null
+
+  loadingImages.add(dataUrl)
+  const image = new Image()
+  image.onload = () => {
+    imageCache.set(dataUrl, image)
+    loadingImages.delete(dataUrl)
+    window.dispatchEvent(new CustomEvent('modraw:image-loaded'))
+  }
+  image.onerror = () => {
+    loadingImages.delete(dataUrl)
+    window.dispatchEvent(new CustomEvent('modraw:image-loaded'))
+  }
+  image.src = dataUrl
+  return null
 }
 
 export function renderElement(ctx: CanvasRenderingContext2D, el: Element) {
@@ -186,7 +208,21 @@ export function renderElement(ctx: CanvasRenderingContext2D, el: Element) {
       break
     }
     case 'image': {
-      // Image rendering would need the Image element to be loaded
+      const imageEl = el as any
+      const image = getCachedImage(imageEl.dataUrl)
+      ctx.globalAlpha = alpha
+      if (image?.complete && image.naturalWidth > 0) {
+        ctx.drawImage(image, el.x, el.y, el.width, el.height)
+      } else {
+        ctx.fillStyle = '#f1f3f5'
+        ctx.strokeStyle = '#868e96'
+        ctx.lineWidth = 1
+        ctx.setLineDash([6, 4])
+        ctx.fillRect(el.x, el.y, el.width, el.height)
+        ctx.strokeRect(el.x, el.y, el.width, el.height)
+        ctx.setLineDash([])
+      }
+      ctx.globalAlpha = 1
       break
     }
   }
