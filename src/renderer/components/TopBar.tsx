@@ -14,11 +14,14 @@ export function TopBar() {
   const setToolLocked = useAppStore((s) => s.setToolLocked)
   const setViewMode = useAppStore((s) => s.setViewMode)
   const setCamera = useAppStore((s) => s.setCamera)
+  const clearSelection = useAppStore((s) => s.clearSelection)
   const camera = useAppStore((s) => s.camera)
 
   const undo = useSceneStore((s) => s.undo)
   const redo = useSceneStore((s) => s.redo)
   const createFile = useSceneStore((s) => s.createFile)
+  const setElements = useSceneStore((s) => s.setElements)
+  const pushHistory = useSceneStore((s) => s.pushHistory)
   const elements = useSceneStore(selectActiveElements)
 
   useEffect(() => {
@@ -55,6 +58,18 @@ export function TopBar() {
             <div className="context-menu-item" onClick={() => { createFile(); setViewMode('editor'); setMenuOpen(false) }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
               New Canvas
+            </div>
+            <div className="context-menu-item danger" onClick={() => {
+              setMenuOpen(false)
+              if (elements.length === 0) return
+              const confirmed = window.confirm('Reset current canvas? This will remove all elements from this canvas.')
+              if (!confirmed) return
+              pushHistory()
+              setElements([])
+              clearSelection()
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+              Reset Canvas
             </div>
             <div className="context-menu-separator" />
             <div className="context-menu-item" onClick={() => { exportToPng(elements); setMenuOpen(false) }}>
