@@ -11,7 +11,6 @@ import { getRecentFileId } from './core/persistence'
 
 export default function App() {
   const viewMode = useAppStore((s) => s.viewMode)
-  const selectedIds = useAppStore((s) => s.selectedIds)
   const setCamera = useAppStore((s) => s.setCamera)
 
   // Restore last session
@@ -60,13 +59,11 @@ export default function App() {
       <TopBar />
       <div className="flex-1 flex relative overflow-hidden">
         <Canvas />
-        {selectedIds.length === 1 && (
-          <div className="absolute top-3 right-3 pointer-events-none">
-            <div className="pointer-events-auto">
-              <PropertiesPanel />
-            </div>
+        <div className="absolute top-3 left-3 pointer-events-none z-50">
+          <div className="pointer-events-auto">
+            <PropertiesPanel />
           </div>
-        )}
+        </div>
       </div>
       <Footer />
     </div>

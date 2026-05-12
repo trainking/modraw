@@ -17,6 +17,7 @@ export interface BaseElement {
   fillStyle: 'solid' | 'hachure' | 'cross-hatch' | 'zigzag'
   strokeWidth: number; strokeStyle: 'solid' | 'dashed' | 'dotted'
   roughness: number; opacity: number
+  roundness?: number
   seed: number
   locked: boolean
   groupIds: string[]

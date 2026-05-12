@@ -38,47 +38,51 @@ export function drawGrid(ctx: CanvasRenderingContext2D, camera: Camera, w: numbe
   ctx.restore()
 }
 
-function drawRoughPath(ctx: CanvasRenderingContext2D, drawable: any, globalAlpha?: number) {
+function drawRoughPath(ctx: CanvasRenderingContext2D, drawable: any, globalAlpha?: number, strokeStyle?: string) {
   if (globalAlpha !== undefined) ctx.globalAlpha = globalAlpha
+  const options = drawable.options || {}
+  const stroke = options.stroke || '#000'
+  const fill = options.fill || 'transparent'
+  const strokeWidth = options.strokeWidth || 1
+  const hasFill = fill && fill !== 'transparent' && fill !== 'none'
   const sets = drawable.sets || []
   for (const set of sets) {
     const ops = set.ops || []
     if (set.type === 'path') {
       ctx.fillStyle = 'transparent'
-      ctx.strokeStyle = set.stroke || '#000'
-      ctx.lineWidth = set.strokeWidth || 1
-      applyStrokeStyle(ctx, set.strokeStyle)
+      ctx.strokeStyle = stroke
+      ctx.lineWidth = strokeWidth
+      applyStrokeStyle(ctx, strokeStyle)
       ctx.beginPath()
       for (const op of ops) {
         if (op.op === 'move') ctx.moveTo(op.data[0], op.data[1])
         else if (op.op === 'bcurveTo') ctx.bezierCurveTo(op.data[0], op.data[1], op.data[2], op.data[3], op.data[4], op.data[5])
         else if (op.op === 'lineTo') ctx.lineTo(op.data[0], op.data[1])
       }
-      ctx.stroke()
+      if (stroke && stroke !== 'transparent' && stroke !== 'none') ctx.stroke()
     } else if (set.type === 'fillPath') {
-      ctx.fillStyle = set.fill || 'transparent'
-      ctx.strokeStyle = set.stroke || '#000'
-      ctx.lineWidth = set.strokeWidth || 1
-      applyStrokeStyle(ctx, set.strokeStyle)
+      ctx.fillStyle = fill
       ctx.beginPath()
       for (const op of ops) {
         if (op.op === 'move') ctx.moveTo(op.data[0], op.data[1])
         else if (op.op === 'bcurveTo') ctx.bezierCurveTo(op.data[0], op.data[1], op.data[2], op.data[3], op.data[4], op.data[5])
         else if (op.op === 'lineTo') ctx.lineTo(op.data[0], op.data[1])
       }
-      if (set.fill && set.fill !== 'transparent' && set.fill !== 'none') ctx.fill()
-      if (set.stroke && set.stroke !== 'none') ctx.stroke()
+      if (hasFill) ctx.fill()
     } else if (set.type === 'fillSketch') {
-      ctx.fillStyle = set.fill || '#000'
+      ctx.strokeStyle = fill
+      ctx.lineWidth = Math.max(1, options.fillWeight > 0 ? options.fillWeight : strokeWidth / 2)
+      ctx.setLineDash([])
       ctx.beginPath()
       for (const op of ops) {
         if (op.op === 'move') ctx.moveTo(op.data[0], op.data[1])
         else if (op.op === 'bcurveTo') ctx.bezierCurveTo(op.data[0], op.data[1], op.data[2], op.data[3], op.data[4], op.data[5])
         else if (op.op === 'lineTo') ctx.lineTo(op.data[0], op.data[1])
       }
-      ctx.fill()
+      if (hasFill) ctx.stroke()
     }
   }
+  ctx.setLineDash([])
   if (globalAlpha !== undefined) ctx.globalAlpha = 1
 }
 
@@ -135,7 +139,14 @@ export function renderElement(ctx: CanvasRenderingContext2D, el: Element) {
       if (isDiamond) {
         const cx = el.x + el.width / 2, cy = el.y + el.height / 2
         const hw = el.width / 2, hh = el.height / 2
-        drawable = generator.polygon([
+        const roundness = Math.max(0, Math.min((el as any).roundness || 0, Math.min(hw, hh) * 0.45))
+        drawable = roundness > 0 ? generator.path(roundedDiamondPath(cx, cy, hw, hh, roundness), {
+          seed: el.seed, roughness: el.roughness,
+          stroke: el.strokeColor, strokeWidth: el.strokeWidth,
+          fill: el.backgroundColor || 'none',
+          fillStyle: hasFill ? (fillStyleMap[el.fillStyle] || 'hachure') : undefined,
+          fillWeight: el.strokeWidth
+        }) : generator.polygon([
           [cx, cy - hh], [cx + hw, cy], [cx, cy + hh], [cx - hw, cy]
         ], {
           seed: el.seed, roughness: el.roughness,
@@ -153,7 +164,14 @@ export function renderElement(ctx: CanvasRenderingContext2D, el: Element) {
           fillWeight: el.strokeWidth
         })
       } else {
-        drawable = generator.rectangle(el.x, el.y, el.width, el.height, {
+        const roundness = Math.max(0, Math.min((el as any).roundness || 0, Math.min(el.width, el.height) / 2))
+        drawable = roundness > 0 ? generator.path(roundedRectPath(el.x, el.y, el.width, el.height, roundness), {
+          seed: el.seed, roughness: el.roughness,
+          stroke: el.strokeColor, strokeWidth: el.strokeWidth,
+          fill: el.backgroundColor || 'none',
+          fillStyle: hasFill ? (fillStyleMap[el.fillStyle] || 'hachure') : undefined,
+          fillWeight: el.strokeWidth
+        }) : generator.rectangle(el.x, el.y, el.width, el.height, {
           seed: el.seed, roughness: el.roughness,
           stroke: el.strokeColor, strokeWidth: el.strokeWidth,
           fill: el.backgroundColor || 'none',
@@ -161,7 +179,7 @@ export function renderElement(ctx: CanvasRenderingContext2D, el: Element) {
           fillWeight: el.strokeWidth
         })
       }
-      drawRoughPath(ctx, drawable, alpha)
+      drawRoughPath(ctx, drawable, alpha, el.strokeStyle)
       break
     }
     case 'line':
@@ -174,7 +192,7 @@ export function renderElement(ctx: CanvasRenderingContext2D, el: Element) {
             seed: el.seed, roughness: el.roughness,
             stroke: el.strokeColor, strokeWidth: el.strokeWidth
           })
-          drawRoughPath(ctx, drawable, alpha)
+          drawRoughPath(ctx, drawable, alpha, el.strokeStyle)
         }
         if (el.type === 'arrow') {
           const last = pts[pts.length - 1]
@@ -192,7 +210,7 @@ export function renderElement(ctx: CanvasRenderingContext2D, el: Element) {
             seed: el.seed, roughness: el.roughness,
             stroke: el.strokeColor, strokeWidth: el.strokeWidth
           })
-          drawRoughPath(ctx, drawable, alpha)
+          drawRoughPath(ctx, drawable, alpha, el.strokeStyle)
         }
       }
       break
@@ -228,6 +246,16 @@ export function renderElement(ctx: CanvasRenderingContext2D, el: Element) {
   }
 
   ctx.restore()
+}
+
+function roundedRectPath(x: number, y: number, width: number, height: number, radius: number): string {
+  const r = Math.min(radius, width / 2, height / 2)
+  return `M ${x + r} ${y} L ${x + width - r} ${y} Q ${x + width} ${y} ${x + width} ${y + r} L ${x + width} ${y + height - r} Q ${x + width} ${y + height} ${x + width - r} ${y + height} L ${x + r} ${y + height} Q ${x} ${y + height} ${x} ${y + height - r} L ${x} ${y + r} Q ${x} ${y} ${x + r} ${y} Z`
+}
+
+function roundedDiamondPath(cx: number, cy: number, hw: number, hh: number, radius: number): string {
+  const r = Math.min(radius, hw * 0.45, hh * 0.45)
+  return `M ${cx - r} ${cy - hh + r} Q ${cx} ${cy - hh} ${cx + r} ${cy - hh + r} L ${cx + hw - r} ${cy - r} Q ${cx + hw} ${cy} ${cx + hw - r} ${cy + r} L ${cx + r} ${cy + hh - r} Q ${cx} ${cy + hh} ${cx - r} ${cy + hh - r} L ${cx - hw + r} ${cy + r} Q ${cx - hw} ${cy} ${cx - hw + r} ${cy - r} Z`
 }
 
 function drawArrowHead(ctx: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number, color: string, alpha?: number) {
