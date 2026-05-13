@@ -199,6 +199,13 @@ export function Canvas() {
       // Hit test
       const hit = hitTest(pos.x, pos.y, elements)
       if (hit) {
+        if (e.shiftKey) {
+          const nextIds = selectedIds.includes(hit.id)
+            ? selectedIds.filter((id) => id !== hit.id)
+            : [...selectedIds, hit.id]
+          setSelection(nextIds)
+          return
+        }
         if (hit.locked) {
           setSelection([hit.id])
           return
