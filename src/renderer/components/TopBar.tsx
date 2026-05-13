@@ -6,6 +6,7 @@ import { openMdrFile } from '../core/mdr'
 import { useT } from '../i18n'
 import { ToolType } from '../types'
 import { GRID_SIZE } from '../utils/constants'
+import { MaterialLibrary } from './MaterialLibrary'
 
 export function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -78,7 +79,7 @@ export function TopBar() {
     <div className="absolute inset-x-0 top-0 z-[100] select-none pointer-events-none">
       {/* Main Menu */}
       <div className="absolute left-3 top-3 pointer-events-auto" ref={menuRef}>
-        <div className="island p-1">
+        <div className="island top-floating-icon">
           <button onClick={() => setMenuOpen(!menuOpen)} className="tool-btn" title={t('menu')}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 12h18M3 6h18M3 18h18" />
@@ -151,6 +152,8 @@ export function TopBar() {
           </div>
         )}
       </div>
+
+      <MaterialLibrary />
 
       {/* ShapesSwitcher */}
       <div className="absolute left-1/2 top-3 -translate-x-1/2 flex items-center gap-0.5 island px-1 py-1 pointer-events-auto">

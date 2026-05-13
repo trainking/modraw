@@ -108,4 +108,19 @@ export interface SceneFile {
   updatedAt: number
 }
 
+export interface LibraryItem {
+  id: string
+  name: string
+  elements: Element[]
+  createdAt: number
+}
+
+export interface LibraryFile {
+  version: number
+  app: 'modraw'
+  type: 'mdrlib'
+  name: string
+  items: LibraryItem[]
+}
+
 export type ViewMode = 'welcome' | 'editor'

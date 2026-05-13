@@ -81,6 +81,14 @@ html, body, #root {
   width: 20px;
   height: 20px;
 }
+.top-floating-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  padding: 4px;
+}
 .tool-shortcut-badge {
   position: absolute;
   right: 4px;
@@ -198,4 +206,57 @@ html, body, #root {
   height: 1px;
   background: var(--color-border-light);
   margin: 4px 8px;
+}
+
+.material-library-panel {
+  width: min(320px, calc(100vw - 24px));
+  max-height: min(520px, calc(100vh - 72px));
+  overflow: hidden;
+}
+.material-library-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+  max-height: calc(min(520px, 100vh - 72px) - 50px);
+  overflow: auto;
+}
+.material-card {
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  padding: 8px;
+  cursor: grab;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.material-card:hover {
+  background: var(--color-surface-high);
+  border-color: var(--color-border);
+}
+.material-card:active {
+  cursor: grabbing;
+}
+.material-preview {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(90deg, rgba(0,0,0,0.035) 1px, transparent 1px),
+    linear-gradient(rgba(0,0,0,0.035) 1px, transparent 1px),
+    var(--color-darkest);
+  background-size: 12px 12px;
+}
+.material-card-name {
+  margin-top: 6px;
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.material-card-meta {
+  color: var(--color-text-muted);
+  font-size: 11px;
 }

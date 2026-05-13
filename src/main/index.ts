@@ -60,6 +60,36 @@ ipcMain.handle('file-open-mdr', async () => {
   return { canceled: false as const, filePath, content }
 })
 
+ipcMain.handle('file-save-mdrlib', async (_event, payload: { defaultName: string; content: string }) => {
+  const result = await dialog.showSaveDialog(mainWindow!, {
+    title: 'Save MoDraw library',
+    defaultPath: payload.defaultName.endsWith('.mdrlib') ? payload.defaultName : `${payload.defaultName}.mdrlib`,
+    filters: [
+      { name: 'MoDraw Library', extensions: ['mdrlib'] }
+    ]
+  })
+  if (result.canceled || !result.filePath) return { canceled: true as const }
+
+  const filePath = result.filePath.endsWith('.mdrlib') ? result.filePath : `${result.filePath}.mdrlib`
+  await writeFile(filePath, payload.content, 'utf-8')
+  return { canceled: false as const, filePath }
+})
+
+ipcMain.handle('file-open-mdrlib', async () => {
+  const result = await dialog.showOpenDialog(mainWindow!, {
+    title: 'Open MoDraw library',
+    properties: ['openFile'],
+    filters: [
+      { name: 'MoDraw Library', extensions: ['mdrlib'] }
+    ]
+  })
+  if (result.canceled || result.filePaths.length === 0) return { canceled: true as const }
+
+  const filePath = result.filePaths[0]
+  const content = await readFile(filePath, 'utf-8')
+  return { canceled: false as const, filePath, content }
+})
+
 app.whenReady().then(() => {
   app.applicationMenu = null
   createWindow()

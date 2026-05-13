@@ -4,7 +4,9 @@ import { selectActiveElements, useSceneStore } from '../stores/scene'
 import { renderStaticScene, renderInteractiveScene } from '../core/renderer'
 import { screenToScene } from '../utils/geometry'
 import { hitTest, hitTestHandle } from '../core/hitTest'
+import { createLibraryItem, instantiateLibraryItem, saveLibraryItem } from '../core/mdrlib'
 import { useT } from '../i18n'
+import { useLibraryStore } from '../stores/library'
 import { Element } from '../types'
 import { generateId } from '../utils/id'
 import { getTextElementSize } from '../utils/text'
@@ -43,6 +45,8 @@ export function Canvas() {
   const pushHistory = useSceneStore((s) => s.pushHistory)
   const undo = useSceneStore((s) => s.undo)
   const redo = useSceneStore((s) => s.redo)
+  const addLibraryItem = useLibraryStore((s) => s.addItem)
+  const getLibraryItem = useLibraryStore((s) => s.getItem)
 
   const [drawing, setDrawing] = useState<DrawState | null>(null)
   const [panning, setPanning] = useState<{ lx: number; ly: number; cx: number; cy: number } | null>(null)
@@ -438,6 +442,16 @@ export function Canvas() {
 
   const closeContextMenu = useCallback(() => setContextMenu(null), [])
 
+  const handleExportMaterial = useCallback(async () => {
+    const exportIds = expandFrameSelection(selectedIds, elements)
+    const selected = elements.filter((el) => exportIds.includes(el.id))
+    if (selected.length === 0) return
+    const item = createLibraryItem(selected, selected.length === 1 ? selected[0].type : 'Material')
+    const saved = await saveLibraryItem(item)
+    if (saved) addLibraryItem(item)
+    closeContextMenu()
+  }, [addLibraryItem, closeContextMenu, elements, selectedIds])
+
   const handleImageSelected = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -479,8 +493,40 @@ export function Canvas() {
 
   const cursor = effectiveTool === 'hand' ? (panning ? 'grabbing' : 'grab') : effectiveTool === 'select' ? 'default' : 'crosshair'
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes('application/x-modraw-library-item')) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    const itemId = e.dataTransfer.getData('application/x-modraw-library-item')
+    if (!itemId) return
+    e.preventDefault()
+    const item = getLibraryItem(itemId)
+    if (!item) return
+
+    const c = staticCanvasRef.current
+    if (!c) return
+    const rect = c.getBoundingClientRect()
+    const dpr = window.devicePixelRatio || 1
+    const pos = screenToScene((e.clientX - rect.left) * dpr, (e.clientY - rect.top) * dpr, camera, c.width, c.height)
+    const inserted = instantiateLibraryItem(item, pos)
+    if (inserted.length === 0) return
+
+    pushHistory()
+    setElements([...useSceneStore.getState().getElements(), ...inserted])
+    setSelection(inserted.map((el) => el.id))
+    setTool('select')
+  }, [camera, getLibraryItem, pushHistory, setElements, setSelection, setTool])
+
   return (
-    <div ref={containerRef} className="w-full h-full flex-1 relative overflow-hidden bg-[var(--color-darkest)]">
+    <div
+      ref={containerRef}
+      className="w-full h-full flex-1 relative overflow-hidden bg-[var(--color-darkest)]"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       <input
         ref={imageInputRef}
         type="file"
@@ -545,6 +591,10 @@ export function Canvas() {
           }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
             {t('duplicate')}
+          </div>
+          <div className="context-menu-item" onClick={handleExportMaterial}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/><path d="M5 3h14"/></svg>
+            {t('exportMaterial')}
           </div>
           <div className="context-menu-separator" />
           <div className="context-menu-item" onClick={() => { const el = elements.find((e) => e.id === selectedIds[0]); if (el) { pushHistory(); updateElement(el.id, { locked: !el.locked }) }; closeContextMenu() }}>
