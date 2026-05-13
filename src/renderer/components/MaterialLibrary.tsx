@@ -36,7 +36,7 @@ export function MaterialLibrary() {
           <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-[var(--color-border-light)]">
             <div className="text-sm font-semibold text-[var(--color-text)]">{t('materialLibrary')}</div>
             <div className="flex items-center gap-2">
-              <button className="btn-ghost text-xs px-3 py-1.5" onClick={clearItems}>{t('resetLibrary')}</button>
+              <button className="btn-danger text-xs px-3 py-1.5" onClick={clearItems}>{t('resetLibrary')}</button>
               <button className="btn-ghost text-xs px-3 py-1.5" onClick={handleOpenLibrary}>{t('openLibrary')}</button>
             </div>
           </div>

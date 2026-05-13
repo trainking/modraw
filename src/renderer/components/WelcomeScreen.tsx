@@ -2,6 +2,7 @@ import { useSceneStore } from '../stores/scene'
 import { useAppStore } from '../stores/app'
 import { openMdrFile } from '../core/mdr'
 import { useT } from '../i18n'
+import appIcon from '../../../build/icon.png'
 
 export function WelcomeScreen() {
   const files = useSceneStore((s) => s.files)
@@ -37,9 +38,7 @@ export function WelcomeScreen() {
   return (
     <div className="w-full h-full flex flex-col items-center justify-center bg-[var(--color-darkest)] select-none">
       <div className="flex flex-col items-center gap-2 mb-8">
-        <div className="w-16 h-16 rounded-2xl bg-[var(--color-primary)] flex items-center justify-center text-[var(--color-on-primary)] text-3xl font-bold mb-2 shadow-lg">
-          M
-        </div>
+        <img src={appIcon} alt="" className="w-16 h-16 mb-2 shadow-lg" draggable={false} />
         <h1 className="text-2xl font-bold text-[var(--color-text)] tracking-tight">{t('appName')}</h1>
         <p className="text-sm text-[var(--color-text-muted)]">{t('tagline')}</p>
       </div>

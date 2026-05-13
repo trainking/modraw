@@ -154,6 +154,20 @@ html, body, #root {
 }
 .btn-ghost:hover { background: var(--color-surface-higher); border-color: var(--color-text-dim); }
 
+.btn-danger {
+  background: var(--color-danger);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: var(--font-family);
+}
+.btn-danger:hover { background: var(--color-danger-hover); }
+
 /* Input styles */
 .input-field {
   background: var(--color-surface-high);
