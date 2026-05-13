@@ -9,6 +9,7 @@ const loadingImages = new Set<string>()
 export function drawGrid(ctx: CanvasRenderingContext2D, camera: Camera, w: number, h: number, gridSize = GRID_SIZE) {
   const gridSpacing = gridSize * camera.zoom
   if (gridSpacing < 7) return
+  const majorGridSize = gridSize * 5
 
   const leftScene = camera.x - w / (2 * camera.zoom)
   const topScene = camera.y - h / (2 * camera.zoom)
@@ -18,19 +19,37 @@ export function drawGrid(ctx: CanvasRenderingContext2D, camera: Camera, w: numbe
   const startX = Math.ceil(leftScene / gridSize) * gridSize
   const startY = Math.ceil(topScene / gridSize) * gridSize
 
-  ctx.strokeStyle = GRID_COLOR
-  ctx.lineWidth = 1
-  ctx.beginPath()
   ctx.save()
   ctx.translate(w / 2, h / 2)
   ctx.scale(camera.zoom, camera.zoom)
   ctx.translate(-camera.x, -camera.y)
+  ctx.strokeStyle = GRID_COLOR
+  ctx.lineWidth = 1 / camera.zoom
+  ctx.setLineDash([3 / camera.zoom, 5 / camera.zoom])
+  ctx.beginPath()
 
   for (let x = startX; x <= rightScene; x += gridSize) {
+    if (Math.round(x / gridSize) % 5 === 0) continue
     ctx.moveTo(x, topScene)
     ctx.lineTo(x, bottomScene)
   }
   for (let y = startY; y <= bottomScene; y += gridSize) {
+    if (Math.round(y / gridSize) % 5 === 0) continue
+    ctx.moveTo(leftScene, y)
+    ctx.lineTo(rightScene, y)
+  }
+  ctx.stroke()
+
+  const majorStartX = Math.ceil(leftScene / majorGridSize) * majorGridSize
+  const majorStartY = Math.ceil(topScene / majorGridSize) * majorGridSize
+
+  ctx.beginPath()
+  ctx.setLineDash([])
+  for (let x = majorStartX; x <= rightScene; x += majorGridSize) {
+    ctx.moveTo(x, topScene)
+    ctx.lineTo(x, bottomScene)
+  }
+  for (let y = majorStartY; y <= bottomScene; y += majorGridSize) {
     ctx.moveTo(leftScene, y)
     ctx.lineTo(rightScene, y)
   }
