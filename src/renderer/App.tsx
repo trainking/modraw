@@ -6,6 +6,7 @@ import { Canvas } from './components/Canvas'
 import { TopBar } from './components/TopBar'
 import { PropertiesPanel } from './components/PropertiesPanel'
 import { FloatingControls } from './components/FloatingControls'
+import { AccountModePanel } from './components/AccountModePanel'
 import { exportToPng, exportToSvg } from './core/export'
 import { getRecentFileId } from './core/persistence'
 
@@ -51,7 +52,12 @@ export default function App() {
   }, [setCamera])
 
   if (viewMode === 'welcome') {
-    return <WelcomeScreen />
+    return (
+      <div className="w-full h-full relative overflow-hidden">
+        <WelcomeScreen />
+        <AccountModePanel />
+      </div>
+    )
   }
 
   return (
@@ -64,6 +70,7 @@ export default function App() {
         </div>
       </div>
       <FloatingControls />
+      <AccountModePanel />
     </div>
   )
 }

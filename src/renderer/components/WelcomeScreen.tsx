@@ -36,7 +36,7 @@ export function WelcomeScreen() {
   }
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-[var(--color-darkest)] select-none">
+    <div className="w-full h-full relative flex flex-col items-center justify-center bg-[var(--color-darkest)] select-none">
       <div className="flex flex-col items-center gap-2 mb-8">
         <img src={appIcon} alt="" className="w-16 h-16 mb-2 shadow-lg" draggable={false} />
         <h1 className="text-2xl font-bold text-[var(--color-text)] tracking-tight">{t('appName')}</h1>

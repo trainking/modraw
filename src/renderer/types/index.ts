@@ -61,6 +61,14 @@ export type Element = BaseElement | LinearElement | FreeDrawElement | TextElemen
 
 export interface Camera { x: number; y: number; zoom: number }
 
+export type AuthMode = 'local' | 'cloud'
+
+export interface UserProfile {
+  id: string
+  name: string
+  email: string
+}
+
 export interface AppState {
   activeTool: ToolType
   toolLocked: boolean
