@@ -17,6 +17,9 @@ export function Canvas() {
   const containerRef = useRef<HTMLDivElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const pendingImagePosRef = useRef<{ x: number; y: number } | null>(null)
+  const canvasSizeRef = useRef({ width: 0, height: 0, dpr: 1 })
+  const drawStaticRef = useRef<() => void>(() => {})
+  const drawInteractiveRef = useRef<() => void>(() => {})
 
   const activeTool = useAppStore((s) => s.activeTool)
   const toolLocked = useAppStore((s) => s.toolLocked)
@@ -63,22 +66,23 @@ export function Canvas() {
 
   const effectiveTool = spaceHeld ? 'hand' : activeTool
 
-  const getCanvasSize = useCallback(() => {
-    const c = staticCanvasRef.current
-    if (!c) return { w: 0, h: 0 }
-    return { w: c.width, h: c.height }
-  }, [])
-
   const syncCanvasSize = useCallback(() => {
     const rect = containerRef.current?.getBoundingClientRect()
     if (!rect) return
     const dpr = window.devicePixelRatio || 1
+    const width = Math.max(1, Math.round(rect.width))
+    const height = Math.max(1, Math.round(rect.height))
+    const pixelWidth = Math.max(1, Math.round(width * dpr))
+    const pixelHeight = Math.max(1, Math.round(height * dpr))
+    canvasSizeRef.current = { width, height, dpr }
     ;[staticCanvasRef, interactiveCanvasRef].forEach((ref) => {
       const c = ref.current
       if (!c) return
-      if (c.width !== rect.width * dpr || c.height !== rect.height * dpr) {
-        c.width = rect.width * dpr
-        c.height = rect.height * dpr
+      c.style.width = `${width}px`
+      c.style.height = `${height}px`
+      if (c.width !== pixelWidth || c.height !== pixelHeight) {
+        c.width = pixelWidth
+        c.height = pixelHeight
       }
     })
   }, [])
@@ -88,7 +92,9 @@ export function Canvas() {
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    renderStaticScene(ctx, elements, selectedIds, camera, canvas.width, canvas.height, gridSize)
+    const { width, height, dpr } = canvasSizeRef.current
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    renderStaticScene(ctx, elements, selectedIds, camera, width, height, gridSize)
   }, [elements, selectedIds, camera, gridSize])
 
   const drawInteractive = useCallback(() => {
@@ -96,6 +102,8 @@ export function Canvas() {
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
+    const { width, height, dpr } = canvasSizeRef.current
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
     let ghost: Element | null = null
     let selBox: { x: number; y: number; w: number; h: number } | null = null
@@ -118,8 +126,13 @@ export function Canvas() {
       }
     }
 
-    renderInteractiveScene(ctx, ghost, selBox, camera, canvas.width, canvas.height)
+    renderInteractiveScene(ctx, ghost, selBox, camera, width, height)
   }, [drawing, freedrawPts, camera, currentStrokeColor, currentStrokeWidth, currentStrokeStyle, currentOpacity])
+
+  useEffect(() => {
+    drawStaticRef.current = drawStatic
+    drawInteractiveRef.current = drawInteractive
+  }, [drawStatic, drawInteractive])
 
   // Sync & draw
   useEffect(() => {
@@ -129,10 +142,26 @@ export function Canvas() {
   })
 
   useEffect(() => {
-    const observer = new ResizeObserver(() => { syncCanvasSize(); drawStatic(); drawInteractive() })
+    let frame = 0
+    const redraw = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        syncCanvasSize()
+        drawStaticRef.current()
+        drawInteractiveRef.current()
+      })
+    }
+    const observer = new ResizeObserver(redraw)
     if (containerRef.current) observer.observe(containerRef.current)
-    return () => observer.disconnect()
-  }, [])
+    window.addEventListener('resize', redraw)
+    window.visualViewport?.addEventListener('resize', redraw)
+    return () => {
+      cancelAnimationFrame(frame)
+      observer.disconnect()
+      window.removeEventListener('resize', redraw)
+      window.visualViewport?.removeEventListener('resize', redraw)
+    }
+  }, [syncCanvasSize])
 
   useEffect(() => {
     const redraw = () => {
@@ -147,8 +176,7 @@ export function Canvas() {
     const c = staticCanvasRef.current
     if (!c) return { x: 0, y: 0 }
     const rect = c.getBoundingClientRect()
-    const dpr = window.devicePixelRatio || 1
-    return screenToScene((e.clientX - rect.left) * dpr, (e.clientY - rect.top) * dpr, camera, c.width, c.height)
+    return screenToScene(e.clientX - rect.left, e.clientY - rect.top, camera, rect.width, rect.height)
   }, [camera])
 
   // --- Mouse Handlers ---
@@ -269,8 +297,7 @@ export function Canvas() {
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (panning) {
-      const dpr = window.devicePixelRatio || 1
-      setCamera({ x: panning.cx - (e.clientX - panning.lx) * dpr / camera.zoom, y: panning.cy - (e.clientY - panning.ly) * dpr / camera.zoom })
+      setCamera({ x: panning.cx - (e.clientX - panning.lx) / camera.zoom, y: panning.cy - (e.clientY - panning.ly) / camera.zoom })
       return
     }
     if (moving) {
@@ -516,8 +543,7 @@ export function Canvas() {
     const c = staticCanvasRef.current
     if (!c) return
     const rect = c.getBoundingClientRect()
-    const dpr = window.devicePixelRatio || 1
-    const pos = screenToScene((e.clientX - rect.left) * dpr, (e.clientY - rect.top) * dpr, camera, c.width, c.height)
+    const pos = screenToScene(e.clientX - rect.left, e.clientY - rect.top, camera, rect.width, rect.height)
     const inserted = instantiateLibraryItem(item, pos)
     if (inserted.length === 0) return
 

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useAppStore } from '../stores/app'
 import { selectActiveElements, useSceneStore } from '../stores/scene'
 import { useT } from '../i18n'
@@ -6,7 +6,7 @@ import { Element } from '../types'
 import { getTextElementSize } from '../utils/text'
 
 const STROKE_COLORS = ['#1e1e1e', '#e03131', '#2f9e44', '#1971c2', '#f08c00']
-const BG_COLORS = ['transparent', '#ffffff', '#ffc9c9', '#b2f2bb', '#a5d8ff', '#ffec99', '#f8f9fa']
+const BG_COLORS = ['transparent', '#ffc9c9', '#b2f2bb', '#a5d8ff', '#ffec99']
 const STROKE_WIDTHS = [1, 2, 4]
 const ROUGHNESS_LEVELS = [0, 1, 2]
 const ROUNDNESS_LEVELS = [0, 12]
@@ -28,6 +28,7 @@ export function PropertiesPanel() {
 
   const el = selectedIds.length === 1 ? elements.find((e) => e.id === selectedIds[0]) : null
   if (!el) return null
+  const normalizedStrokeColor = normalizeHexColor(el.strokeColor)
 
   const update = (props: Partial<Element>, recordHistory = true) => {
     if (recordHistory) pushHistory()
@@ -83,15 +84,46 @@ export function PropertiesPanel() {
 
   const strokeColorSection = (
     <PanelSection label={t('stroke')}>
-      <div className="flex gap-1.5 flex-wrap">
-        {STROKE_COLORS.map((color) => (
-          <ColorButton
-            key={color}
-            color={color}
-            selected={el.strokeColor === color}
-            onClick={() => { update({ strokeColor: color }); setCurrentItemProp('currentItemStrokeColor', color) }}
-          />
-        ))}
+      <div className="flex items-center gap-1.5">
+        <div className="flex gap-1.5">
+          {STROKE_COLORS.map((color) => (
+            <ColorButton
+              key={color}
+              color={color}
+              selected={normalizedStrokeColor === color}
+              onClick={() => { update({ strokeColor: color }); setCurrentItemProp('currentItemStrokeColor', color) }}
+            />
+          ))}
+        </div>
+        <div className="mx-0.5 h-6 w-px bg-[var(--color-border)]" />
+        <ColorPickerButton
+          color={normalizedStrokeColor}
+          selected={!STROKE_COLORS.includes(normalizedStrokeColor)}
+          onChange={(color) => { update({ strokeColor: color }); setCurrentItemProp('currentItemStrokeColor', color) }}
+        />
+      </div>
+    </PanelSection>
+  )
+
+  const backgroundColorSection = (
+    <PanelSection label={t('background')}>
+      <div className="flex items-center gap-1.5">
+        <div className="flex gap-1.5">
+          {BG_COLORS.map((color) => (
+            <ColorButton
+              key={color}
+              color={color}
+              selected={normalizeColorForSelection(el.backgroundColor) === color}
+              onClick={() => { update({ backgroundColor: color }); setCurrentItemProp('currentItemBackgroundColor', color) }}
+            />
+          ))}
+        </div>
+        <div className="mx-0.5 h-6 w-px bg-[var(--color-border)]" />
+        <ColorPickerButton
+          color={normalizeHexColor(el.backgroundColor)}
+          selected={!BG_COLORS.includes(normalizeColorForSelection(el.backgroundColor))}
+          onChange={(color) => { update({ backgroundColor: color }); setCurrentItemProp('currentItemBackgroundColor', color) }}
+        />
       </div>
     </PanelSection>
   )
@@ -151,18 +183,7 @@ export function PropertiesPanel() {
     return (
       <PanelShell>
         {strokeColorSection}
-        <PanelSection label={t('background')}>
-          <div className="flex gap-1.5 flex-wrap">
-            {BG_COLORS.map((color) => (
-              <ColorButton
-                key={color}
-                color={color}
-                selected={el.backgroundColor === color}
-                onClick={() => { update({ backgroundColor: color }); setCurrentItemProp('currentItemBackgroundColor', color) }}
-              />
-            ))}
-          </div>
-        </PanelSection>
+        {backgroundColorSection}
         <PanelSection label={t('fill')}>
           <IconButtonRow>
             {fillStyles.map((style) => (
@@ -423,6 +444,165 @@ function ColorButton({
         backgroundPosition: transparent ? '0 0, 4px 4px' : undefined,
       }}
     />
+  )
+}
+
+function ColorPickerButton({
+  color,
+  selected,
+  onChange
+}: {
+  color: string
+  selected: boolean
+  onChange: (color: string) => void
+}) {
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const nativeInputRef = useRef<HTMLInputElement>(null)
+  const hexInputRef = useRef<HTMLInputElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState(stripHexPrefix(color))
+  const [popoverPos, setPopoverPos] = useState({ left: 0, top: 0 })
+
+  useEffect(() => {
+    setDraft(stripHexPrefix(color))
+  }, [color])
+
+  useEffect(() => {
+    if (!open) return
+    requestAnimationFrame(() => {
+      hexInputRef.current?.focus()
+      hexInputRef.current?.select()
+    })
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target as Node
+      if (buttonRef.current?.contains(target) || popoverRef.current?.contains(target)) return
+      setOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutsidePointer)
+    return () => document.removeEventListener('pointerdown', closeOnOutsidePointer)
+  }, [open])
+
+  const openPopover = () => {
+    const rect = buttonRef.current?.getBoundingClientRect()
+    if (rect) {
+      const width = 168
+      const height = 70
+      const margin = 8
+      const left = Math.min(rect.right + 12, window.innerWidth - width - margin)
+      const top = Math.max(margin, Math.min(rect.top + rect.height / 2 - height / 2, window.innerHeight - height - margin))
+      setPopoverPos({ left, top })
+    }
+    setOpen((value) => !value)
+  }
+
+  const applyDraft = (value: string) => {
+    const clean = cleanHexInput(value)
+    setDraft(clean)
+    const normalized = normalizeEditableHex(clean)
+    if (normalized) onChange(normalized)
+  }
+
+  return (
+    <div className="relative">
+      <button
+        ref={buttonRef}
+        type="button"
+        title="Hex color"
+        onClick={openPopover}
+        className={`relative w-6 h-6 rounded border flex items-center justify-center transition-all ${
+          selected ? 'border-[var(--color-primary)] ring-2 ring-[#dedaff]' : 'border-[var(--color-border)] hover:bg-[var(--color-surface-higher)]'
+        }`}
+      >
+        <EyedropperIcon />
+      </button>
+      <input
+        ref={nativeInputRef}
+        type="color"
+        value={color}
+        onChange={(event) => {
+          const next = event.target.value
+          setDraft(stripHexPrefix(next))
+          onChange(next)
+        }}
+        className="sr-only"
+      />
+      {open && (
+        <div
+          ref={popoverRef}
+          className="fixed z-[80] w-[168px] rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-modal)]"
+          style={{ left: popoverPos.left, top: popoverPos.top }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="absolute -left-[5px] top-1/2 h-2.5 w-2.5 -translate-y-1/2 rotate-45 border-b border-l border-[var(--color-border)] bg-[var(--color-surface)]" />
+          <label className="mb-1 block text-[11px] text-[var(--color-text-muted)]">Hex</label>
+          <div className="flex h-8 items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface-high)] px-2 focus-within:border-[var(--color-primary)]">
+            <span className="text-xs text-[var(--color-text-muted)]">#</span>
+            <input
+              ref={hexInputRef}
+              value={draft}
+              maxLength={6}
+              spellCheck={false}
+              onChange={(event) => applyDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape' || event.key === 'Enter') setOpen(false)
+              }}
+              className="min-w-0 flex-1 bg-transparent px-1 text-xs font-mono uppercase text-[var(--color-text)] outline-none"
+            />
+            <button
+              type="button"
+              title="Pick color"
+              onClick={() => nativeInputRef.current?.click()}
+              className="ml-1 flex h-6 w-6 items-center justify-center rounded hover:bg-[var(--color-surface-higher)]"
+            >
+              <EyedropperIcon />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function normalizeHexColor(color: string): string {
+  const value = color.trim().toLowerCase()
+  if (/^#[0-9a-f]{6}$/.test(value)) return value
+  if (/^#[0-9a-f]{3}$/.test(value)) {
+    return `#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}`
+  }
+  return '#1e1e1e'
+}
+
+function normalizeColorForSelection(color: string): string {
+  return color === 'transparent' ? 'transparent' : normalizeHexColor(color)
+}
+
+function stripHexPrefix(color: string): string {
+  return normalizeHexColor(color).slice(1)
+}
+
+function cleanHexInput(value: string): string {
+  return value.replace(/^#/, '').replace(/[^0-9a-fA-F]/g, '').slice(0, 6).toUpperCase()
+}
+
+function normalizeEditableHex(value: string): string | null {
+  const clean = cleanHexInput(value).toLowerCase()
+  if (/^[0-9a-f]{6}$/.test(clean)) return `#${clean}`
+  if (/^[0-9a-f]{3}$/.test(clean)) return `#${clean[0]}${clean[0]}${clean[1]}${clean[1]}${clean[2]}${clean[2]}`
+  return null
+}
+
+function EyedropperIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-4 h-4 text-[var(--color-text)]" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.5 5.5l4 4" />
+      <path d="M16 4l4 4-9.5 9.5-4.5 1 1-4.5L16 4z" />
+      <path d="M5 20h6" />
+    </svg>
   )
 }
 
