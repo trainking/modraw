@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useAppStore } from '../stores/app'
 import { selectActiveElements, useSceneStore } from '../stores/scene'
 import { useT } from '../i18n'
-import { Element } from '../types'
+import { Element, ElementType, ToolType } from '../types'
 import { getTextElementSize } from '../utils/text'
 
 const STROKE_COLORS = ['#1e1e1e', '#e03131', '#2f9e44', '#1971c2', '#f08c00']
@@ -12,7 +12,23 @@ const ROUGHNESS_LEVELS = [0, 1, 2]
 const ROUNDNESS_LEVELS = [0, 12]
 
 export function PropertiesPanel() {
+  const activeTool = useAppStore((s) => s.activeTool)
   const selectedIds = useAppStore((s) => s.selectedIds)
+  const currentStrokeColor = useAppStore((s) => s.currentItemStrokeColor)
+  const currentBackgroundColor = useAppStore((s) => s.currentItemBackgroundColor)
+  const currentFillStyle = useAppStore((s) => s.currentItemFillStyle)
+  const currentStrokeWidth = useAppStore((s) => s.currentItemStrokeWidth)
+  const currentStrokeStyle = useAppStore((s) => s.currentItemStrokeStyle)
+  const currentRoughness = useAppStore((s) => s.currentItemRoughness)
+  const currentOpacity = useAppStore((s) => s.currentItemOpacity)
+  const currentRoundness = useAppStore((s) => s.currentItemRoundness)
+  const currentStartArrowhead = useAppStore((s) => s.currentItemStartArrowhead)
+  const currentEndArrowhead = useAppStore((s) => s.currentItemEndArrowhead)
+  const currentFontSize = useAppStore((s) => s.currentItemFontSize)
+  const currentFontFamily = useAppStore((s) => s.currentItemFontFamily)
+  const currentFontStyle = useAppStore((s) => s.currentItemFontStyle)
+  const currentFontWeight = useAppStore((s) => s.currentItemFontWeight)
+  const currentTextAlign = useAppStore((s) => s.currentItemTextAlign)
   const elements = useSceneStore(selectActiveElements)
   const updateElement = useSceneStore((s) => s.updateElement)
   const setElements = useSceneStore((s) => s.setElements)
@@ -26,11 +42,83 @@ export function PropertiesPanel() {
     { value: 'solid', label: t('solid') },
   ]
 
-  const el = selectedIds.length === 1 ? elements.find((e) => e.id === selectedIds[0]) : null
+  const selectedEl = selectedIds.length === 1 ? elements.find((e) => e.id === selectedIds[0]) : null
+  const toolPanelType = getToolPanelElementType(activeTool)
+  const shouldShowToolPanel = toolPanelType !== null
+  const panelType = shouldShowToolPanel ? toolPanelType : selectedEl?.type || null
+  const el = shouldShowToolPanel && panelType ? makePanelPreviewElement(panelType, {
+    strokeColor: currentStrokeColor,
+    backgroundColor: currentBackgroundColor,
+    fillStyle: currentFillStyle,
+    strokeWidth: currentStrokeWidth,
+    strokeStyle: currentStrokeStyle,
+    roughness: currentRoughness,
+    opacity: currentOpacity,
+    roundness: currentRoundness,
+    startArrowhead: currentStartArrowhead,
+    endArrowhead: currentEndArrowhead,
+    fontSize: currentFontSize,
+    fontFamily: currentFontFamily,
+    fontStyle: currentFontStyle,
+    fontWeight: currentFontWeight,
+    textAlign: currentTextAlign
+  }) : selectedEl
+  const hasSelectedElement = !!selectedEl && !shouldShowToolPanel
+  const arrowStartArrowhead = selectedEl?.type === 'arrow' ? (selectedEl as any).startArrowhead : undefined
+  const arrowEndArrowhead = selectedEl?.type === 'arrow' ? (selectedEl as any).endArrowhead : undefined
+  const textFontSize = selectedEl?.type === 'text' ? (selectedEl as any).fontSize : undefined
+  const textFontFamily = selectedEl?.type === 'text' ? (selectedEl as any).fontFamily : undefined
+  const textFontStyle = selectedEl?.type === 'text' ? (selectedEl as any).fontStyle : undefined
+  const textFontWeight = selectedEl?.type === 'text' ? (selectedEl as any).fontWeight : undefined
+  const textAlign = selectedEl?.type === 'text' ? (selectedEl as any).textAlign : undefined
+
+  useEffect(() => {
+    if (!selectedEl) return
+    setCurrentItemProp('currentItemStrokeColor', selectedEl.strokeColor)
+    setCurrentItemProp('currentItemBackgroundColor', selectedEl.backgroundColor)
+    setCurrentItemProp('currentItemFillStyle', selectedEl.fillStyle)
+    setCurrentItemProp('currentItemStrokeWidth', selectedEl.strokeWidth)
+    setCurrentItemProp('currentItemStrokeStyle', selectedEl.strokeStyle)
+    setCurrentItemProp('currentItemRoughness', selectedEl.roughness)
+    setCurrentItemProp('currentItemOpacity', selectedEl.opacity)
+    setCurrentItemProp('currentItemRoundness', selectedEl.roundness || 0)
+    if (selectedEl.type === 'arrow') {
+      setCurrentItemProp('currentItemStartArrowhead', (selectedEl as any).startArrowhead || 'none')
+      setCurrentItemProp('currentItemEndArrowhead', (selectedEl as any).endArrowhead || 'arrow')
+    }
+    if (selectedEl.type === 'text') {
+      const textEl = selectedEl as any
+      setCurrentItemProp('currentItemFontSize', textEl.fontSize || 20)
+      setCurrentItemProp('currentItemFontFamily', textEl.fontFamily || 'Assistant, sans-serif')
+      setCurrentItemProp('currentItemFontStyle', textEl.fontStyle || 'normal')
+      setCurrentItemProp('currentItemFontWeight', textEl.fontWeight || 'normal')
+      setCurrentItemProp('currentItemTextAlign', textEl.textAlign || 'left')
+    }
+  }, [
+    selectedEl?.strokeColor,
+    selectedEl?.backgroundColor,
+    selectedEl?.fillStyle,
+    selectedEl?.strokeWidth,
+    selectedEl?.strokeStyle,
+    selectedEl?.roughness,
+    selectedEl?.opacity,
+    selectedEl?.roundness,
+    arrowStartArrowhead,
+    arrowEndArrowhead,
+    textFontSize,
+    textFontFamily,
+    textFontStyle,
+    textFontWeight,
+    textAlign,
+    setCurrentItemProp
+  ])
+
   if (!el) return null
   const normalizedStrokeColor = normalizeHexColor(el.strokeColor)
 
   const update = (props: Partial<Element>, recordHistory = true) => {
+    applyCurrentItemProps(props, setCurrentItemProp)
+    if (!hasSelectedElement) return
     if (recordHistory) pushHistory()
     updateElement(el.id, props)
   }
@@ -50,7 +138,7 @@ export function PropertiesPanel() {
     setElements(next)
   }
 
-  const layerSection = (
+  const layerSection = hasSelectedElement ? (
     <PanelSection label={t('layer')}>
       <IconButtonRow>
         <IconButton title={t('sendToBack')} onClick={() => moveLayer('back')}><LayerIcon action="back" /></IconButton>
@@ -59,7 +147,7 @@ export function PropertiesPanel() {
         <IconButton title={t('bringToFront')} onClick={() => moveLayer('front')}><LayerIcon action="front" /></IconButton>
       </IconButtonRow>
     </PanelSection>
-  )
+  ) : null
 
   const opacitySection = (
     <PanelSection label={t('opacity')}>
@@ -70,8 +158,12 @@ export function PropertiesPanel() {
           max={100}
           step={1}
           value={el.opacity}
-          onPointerDown={() => pushHistory()}
-          onChange={(e) => update({ opacity: Number(e.target.value) }, false)}
+          onPointerDown={() => { if (hasSelectedElement) pushHistory() }}
+          onChange={(e) => {
+            const opacity = Number(e.target.value)
+            update({ opacity }, false)
+            setCurrentItemProp('currentItemOpacity', opacity)
+          }}
           className="w-full accent-[var(--color-primary)]"
         />
         <div className="flex justify-between text-[11px] text-[var(--color-text-muted)]">
@@ -209,7 +301,7 @@ export function PropertiesPanel() {
                   key={roundness}
                   selected={(el.roundness || 0) === roundness}
                   title={roundness === 0 ? t('sharp') : t('rounded')}
-                  onClick={() => update({ roundness } as Partial<Element>)}
+                  onClick={() => { update({ roundness } as Partial<Element>); setCurrentItemProp('currentItemRoundness', roundness) }}
                 >
                   <CornerIcon rounded={roundness > 0} />
                 </IconButton>
@@ -238,7 +330,7 @@ export function PropertiesPanel() {
                 key={type}
                 selected={(arrow.endArrowhead || 'arrow') === type}
                 title={type === 'arrow' ? t('arrow') : t(type)}
-                onClick={() => update({ endArrowhead: type } as Partial<Element>)}
+                onClick={() => { update({ endArrowhead: type } as Partial<Element>); setCurrentItemProp('currentItemEndArrowhead', type) }}
               >
                 <ArrowHeadIcon type={type} />
               </IconButton>
@@ -252,7 +344,7 @@ export function PropertiesPanel() {
                 key={type}
                 selected={(arrow.startArrowhead || 'none') === type}
                 title={type === 'none' ? t('none') : t('arrow')}
-                onClick={() => update({ startArrowhead: type } as Partial<Element>)}
+                onClick={() => { update({ startArrowhead: type } as Partial<Element>); setCurrentItemProp('currentItemStartArrowhead', type) }}
               >
                 <EndpointIcon type={type} />
               </IconButton>
@@ -291,6 +383,10 @@ export function PropertiesPanel() {
       const fontSize = Number(props.fontSize ?? textEl.fontSize ?? 20)
       const text = textEl.text || ''
       update({ ...props, ...getTextElementSize(text, fontSize) } as Partial<Element>)
+      if (props.fontSize !== undefined) setCurrentItemProp('currentItemFontSize', fontSize)
+      if (typeof props.fontFamily === 'string') setCurrentItemProp('currentItemFontFamily', props.fontFamily)
+      if (props.fontStyle === 'normal' || props.fontStyle === 'italic') setCurrentItemProp('currentItemFontStyle', props.fontStyle)
+      if (props.fontWeight === 'normal' || props.fontWeight === 'bold') setCurrentItemProp('currentItemFontWeight', props.fontWeight)
     }
 
     return (
@@ -301,28 +397,28 @@ export function PropertiesPanel() {
             <IconButton
               selected={(textEl.fontStyle || 'normal') === 'italic'}
               title={t('italic')}
-              onClick={() => update({ fontStyle: textEl.fontStyle === 'italic' ? 'normal' : 'italic' } as Partial<Element>)}
+              onClick={() => updateTextStyle({ fontStyle: textEl.fontStyle === 'italic' ? 'normal' : 'italic' })}
             >
               <FontIcon type="italic" />
             </IconButton>
             <IconButton
               selected={(textEl.fontWeight || 'normal') === 'bold'}
               title={t('bold')}
-              onClick={() => update({ fontWeight: textEl.fontWeight === 'bold' ? 'normal' : 'bold' } as Partial<Element>)}
+              onClick={() => updateTextStyle({ fontWeight: textEl.fontWeight === 'bold' ? 'normal' : 'bold' })}
             >
               <FontIcon type="bold" />
             </IconButton>
             <IconButton
               selected={(textEl.fontFamily || '').includes('monospace')}
               title={t('monospace')}
-              onClick={() => update({ fontFamily: (textEl.fontFamily || '').includes('monospace') ? 'Assistant, sans-serif' : 'monospace' } as Partial<Element>)}
+              onClick={() => updateTextStyle({ fontFamily: (textEl.fontFamily || '').includes('monospace') ? 'Assistant, sans-serif' : 'monospace' })}
             >
               <FontIcon type="code" />
             </IconButton>
             <IconButton
               selected={(textEl.fontFamily || '').includes('serif')}
               title={t('serif')}
-              onClick={() => update({ fontFamily: (textEl.fontFamily || '').includes('serif') ? 'Assistant, sans-serif' : 'Georgia, serif' } as Partial<Element>)}
+              onClick={() => updateTextStyle({ fontFamily: (textEl.fontFamily || '').includes('serif') ? 'Assistant, sans-serif' : 'Georgia, serif' })}
             >
               <FontIcon type="serif" />
             </IconButton>
@@ -349,7 +445,7 @@ export function PropertiesPanel() {
                 key={align}
                 selected={(textEl.textAlign || 'left') === align}
                 title={t(align)}
-                onClick={() => update({ textAlign: align } as Partial<Element>)}
+                onClick={() => { update({ textAlign: align } as Partial<Element>); setCurrentItemProp('currentItemTextAlign', align) }}
               >
                 <AlignIcon align={align} />
               </IconButton>
@@ -378,6 +474,124 @@ function PanelShell({ children, wide = false }: { children: ReactNode; wide?: bo
       {children}
     </div>
   )
+}
+
+function getToolPanelElementType(tool: ToolType): ElementType | null {
+  if (
+    tool === 'rectangle' ||
+    tool === 'diamond' ||
+    tool === 'ellipse' ||
+    tool === 'line' ||
+    tool === 'arrow' ||
+    tool === 'freedraw' ||
+    tool === 'text' ||
+    tool === 'frame'
+  ) {
+    return tool
+  }
+  return null
+}
+
+function makePanelPreviewElement(type: ElementType, style: {
+  strokeColor: string
+  backgroundColor: string
+  fillStyle: Element['fillStyle']
+  strokeWidth: number
+  strokeStyle: Element['strokeStyle']
+  roughness: number
+  opacity: number
+  roundness: number
+  startArrowhead: 'none' | 'arrow' | 'bar' | 'dot' | 'triangle'
+  endArrowhead: 'none' | 'arrow' | 'bar' | 'dot' | 'triangle'
+  fontSize: number
+  fontFamily: string
+  fontStyle: 'normal' | 'italic'
+  fontWeight: 'normal' | 'bold'
+  textAlign: 'left' | 'center' | 'right'
+}): Element {
+  const base = {
+    id: '__tool-preview__',
+    type,
+    x: 0,
+    y: 0,
+    width: 120,
+    height: 80,
+    angle: 0,
+    strokeColor: style.strokeColor,
+    backgroundColor: style.backgroundColor,
+    fillStyle: style.fillStyle,
+    strokeWidth: style.strokeWidth,
+    strokeStyle: style.strokeStyle,
+    roughness: style.roughness,
+    opacity: style.opacity,
+    roundness: style.roundness,
+    seed: 1,
+    locked: false,
+    groupIds: [],
+    frameId: null,
+    boundElements: null
+  }
+
+  if (type === 'line' || type === 'arrow') {
+    return {
+      ...base,
+      backgroundColor: 'transparent',
+      fillStyle: 'solid',
+      points: [[0, 0], [60, 40], [120, 80]],
+      startArrowhead: type === 'arrow' ? style.startArrowhead : 'none',
+      endArrowhead: type === 'arrow' ? style.endArrowhead : 'none'
+    } as Element
+  }
+
+  if (type === 'freedraw') {
+    return {
+      ...base,
+      backgroundColor: 'transparent',
+      fillStyle: 'solid',
+      points: [[0, 40], [35, 10], [70, 65], [120, 30]],
+      pressures: [],
+      simulatePressure: true
+    } as Element
+  }
+
+  if (type === 'text') {
+    return {
+      ...base,
+      backgroundColor: 'transparent',
+      fillStyle: 'solid',
+      roughness: 0,
+      text: 'Text',
+      fontSize: style.fontSize,
+      fontFamily: style.fontFamily,
+      fontStyle: style.fontStyle,
+      fontWeight: style.fontWeight,
+      textAlign: style.textAlign,
+      autoResize: true
+    } as Element
+  }
+
+  return base as Element
+}
+
+function applyCurrentItemProps(
+  props: Partial<Element>,
+  setCurrentItemProp: <K extends keyof import('../types').AppState>(key: K, value: import('../types').AppState[K]) => void
+) {
+  if (props.strokeColor !== undefined) setCurrentItemProp('currentItemStrokeColor', props.strokeColor)
+  if (props.backgroundColor !== undefined) setCurrentItemProp('currentItemBackgroundColor', props.backgroundColor)
+  if (props.fillStyle !== undefined) setCurrentItemProp('currentItemFillStyle', props.fillStyle)
+  if (props.strokeWidth !== undefined) setCurrentItemProp('currentItemStrokeWidth', props.strokeWidth)
+  if (props.strokeStyle !== undefined) setCurrentItemProp('currentItemStrokeStyle', props.strokeStyle)
+  if (props.roughness !== undefined) setCurrentItemProp('currentItemRoughness', props.roughness)
+  if (props.opacity !== undefined) setCurrentItemProp('currentItemOpacity', props.opacity)
+  if (props.roundness !== undefined) setCurrentItemProp('currentItemRoundness', props.roundness)
+
+  const arrowProps = props as Partial<Element> & {
+    startArrowhead?: 'none' | 'arrow' | 'bar' | 'dot' | 'triangle'
+    endArrowhead?: 'none' | 'arrow' | 'bar' | 'dot' | 'triangle'
+  }
+  if (arrowProps.startArrowhead !== undefined) setCurrentItemProp('currentItemStartArrowhead', arrowProps.startArrowhead)
+  if (arrowProps.endArrowhead !== undefined) setCurrentItemProp('currentItemEndArrowhead', arrowProps.endArrowhead)
 }
 
 function PanelSection({ label, children }: { label: string; children: ReactNode }) {

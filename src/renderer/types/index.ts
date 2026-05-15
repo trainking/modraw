@@ -83,8 +83,14 @@ export interface AppState {
   currentItemStrokeStyle: 'solid' | 'dashed' | 'dotted'
   currentItemRoughness: number
   currentItemOpacity: number
+  currentItemRoundness: number
+  currentItemStartArrowhead: 'none' | 'arrow' | 'bar' | 'dot' | 'triangle'
+  currentItemEndArrowhead: 'none' | 'arrow' | 'bar' | 'dot' | 'triangle'
   currentItemFontSize: number
   currentItemFontFamily: string
+  currentItemFontStyle: 'normal' | 'italic'
+  currentItemFontWeight: 'normal' | 'bold'
+  currentItemTextAlign: 'left' | 'center' | 'right'
   gridSize: number | null
 }
 
@@ -102,8 +108,14 @@ export const DEFAULT_APP_STATE: AppState = {
   currentItemStrokeStyle: 'solid',
   currentItemRoughness: 1,
   currentItemOpacity: 100,
+  currentItemRoundness: 0,
+  currentItemStartArrowhead: 'none',
+  currentItemEndArrowhead: 'arrow',
   currentItemFontSize: 20,
   currentItemFontFamily: 'Assistant, sans-serif',
+  currentItemFontStyle: 'normal',
+  currentItemFontWeight: 'normal',
+  currentItemTextAlign: 'left',
   gridSize: null
 }
 

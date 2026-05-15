@@ -37,8 +37,14 @@ export function Canvas() {
   const currentFillStyle = useAppStore((s) => s.currentItemFillStyle)
   const currentStrokeStyle = useAppStore((s) => s.currentItemStrokeStyle)
   const currentOpacity = useAppStore((s) => s.currentItemOpacity)
+  const currentRoundness = useAppStore((s) => s.currentItemRoundness)
+  const currentStartArrowhead = useAppStore((s) => s.currentItemStartArrowhead)
+  const currentEndArrowhead = useAppStore((s) => s.currentItemEndArrowhead)
   const currentFontSize = useAppStore((s) => s.currentItemFontSize)
   const currentFontFamily = useAppStore((s) => s.currentItemFontFamily)
+  const currentFontStyle = useAppStore((s) => s.currentItemFontStyle)
+  const currentFontWeight = useAppStore((s) => s.currentItemFontWeight)
+  const currentTextAlign = useAppStore((s) => s.currentItemTextAlign)
 
   const elements = useSceneStore(selectActiveElements)
   const addElement = useSceneStore((s) => s.addElement)
@@ -268,7 +274,9 @@ export function Canvas() {
         fillStyle: 'solid', strokeWidth: currentStrokeWidth, strokeStyle: 'solid',
         roughness: 0, opacity: currentOpacity, seed: Math.random() * 100000 | 0,
         locked: false, groupIds: [], frameId: null, boundElements: null,
-        text: 'Text', fontSize: currentFontSize, fontFamily: currentFontFamily, textAlign: 'left', autoResize: true
+        text: 'Text', fontSize: currentFontSize, fontFamily: currentFontFamily,
+        fontStyle: currentFontStyle, fontWeight: currentFontWeight,
+        textAlign: currentTextAlign, autoResize: true
       } as Element
       el.frameId = findContainingFrameId(el, elements)
       addElement(el)
@@ -292,7 +300,8 @@ export function Canvas() {
     effectiveTool, getScenePos, elements, selectedIds, camera, setSelection, clearSelection,
     pushHistory, deleteElements, addElement, currentFontSize, currentFontFamily,
     currentStrokeColor, currentBgColor, currentFillStyle, currentStrokeWidth,
-    currentStrokeStyle, currentRoughness, currentOpacity, toolLocked, setTool
+    currentStrokeStyle, currentRoughness, currentOpacity, currentFontStyle,
+    currentFontWeight, currentTextAlign, toolLocked, setTool
   ])
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -379,7 +388,16 @@ export function Canvas() {
         const x = Math.min(drawing.sx, drawing.cx), y = Math.min(drawing.sy, drawing.cy)
         const w = Math.abs(drawing.cx - drawing.sx), h = Math.abs(drawing.cy - drawing.sy)
         if (w > 12 || h > 12) {
-          const frame = makeFrameElement(x, y, w, h)
+          const frame = makeFrameElement(x, y, w, h, {
+            currentStrokeColor,
+            currentBgColor,
+            currentFillStyle,
+            currentStrokeWidth,
+            currentStrokeStyle,
+            currentRoughness,
+            currentOpacity,
+            currentRoundness
+          })
           pushHistory()
           const next = elements.map((item) => item.type !== 'frame' && isElementInsideFrame(item, frame)
             ? { ...item, frameId: frame.id } as Element
@@ -393,7 +411,7 @@ export function Canvas() {
         const x = Math.min(drawing.sx, drawing.cx), y = Math.min(drawing.sy, drawing.cy)
         const w = Math.abs(drawing.cx - drawing.sx), h = Math.abs(drawing.cy - drawing.sy)
         if (w > 3 || h > 3) {
-          const el = makeShapeElement(drawing.type, x, y, w, h, { currentStrokeColor, currentBgColor, currentFillStyle, currentStrokeWidth, currentStrokeStyle, currentRoughness, currentOpacity })
+          const el = makeShapeElement(drawing.type, x, y, w, h, { currentStrokeColor, currentBgColor, currentFillStyle, currentStrokeWidth, currentStrokeStyle, currentRoughness, currentOpacity, currentRoundness })
           el.frameId = findContainingFrameId(el, elements)
           addElement(el); setSelection([el.id])
           createdElement = true
@@ -401,7 +419,15 @@ export function Canvas() {
       } else if (drawing.type === 'line' || drawing.type === 'arrow') {
         const w = Math.abs(drawing.cx - drawing.sx), h = Math.abs(drawing.cy - drawing.sy)
         if (w > 2 || h > 2) {
-          const el = makeLinearElement(drawing.type as 'line' | 'arrow', drawing.sx, drawing.sy, drawing.cx, drawing.cy, { currentStrokeColor, currentStrokeWidth, currentStrokeStyle, currentRoughness, currentOpacity })
+          const el = makeLinearElement(drawing.type as 'line' | 'arrow', drawing.sx, drawing.sy, drawing.cx, drawing.cy, {
+            currentStrokeColor,
+            currentStrokeWidth,
+            currentStrokeStyle,
+            currentRoughness,
+            currentOpacity,
+            currentStartArrowhead,
+            currentEndArrowhead
+          })
           el.frameId = findContainingFrameId(el, elements)
           addElement(el); setSelection([el.id])
           createdElement = true
@@ -428,7 +454,8 @@ export function Canvas() {
   }, [
     drawing, moving, freedrawPts, elements, addElement, setElements, pushHistory, setSelection, currentStrokeColor,
     currentBgColor, currentFillStyle, currentStrokeWidth, currentStrokeStyle,
-    currentRoughness, currentOpacity, toolLocked, setTool
+    currentRoughness, currentOpacity, currentRoundness, currentStartArrowhead,
+    currentEndArrowhead, toolLocked, setTool
   ])
 
   // Keyboard
@@ -827,7 +854,7 @@ function makeShapeElement(type: string, x: number, y: number, w: number, h: numb
     strokeColor: p.currentStrokeColor, backgroundColor: p.currentBgColor, fillStyle: p.currentFillStyle,
     strokeWidth: p.currentStrokeWidth, strokeStyle: p.currentStrokeStyle,
     roughness: p.currentRoughness, opacity: p.currentOpacity, seed: Math.random() * 100000 | 0,
-    locked: false, groupIds: [], frameId: null, boundElements: null } as Element
+    roundness: p.currentRoundness || 0, locked: false, groupIds: [], frameId: null, boundElements: null } as Element
 }
 
 function makeLinearElement(type: 'line' | 'arrow', x1: number, y1: number, x2: number, y2: number, p: any): Element {
@@ -838,10 +865,12 @@ function makeLinearElement(type: 'line' | 'arrow', x1: number, y1: number, x2: n
     strokeWidth: p.currentStrokeWidth, strokeStyle: p.currentStrokeStyle,
     roughness: p.currentRoughness, opacity: p.currentOpacity, seed: Math.random() * 100000 | 0,
     locked: false, groupIds: [], frameId: null, boundElements: null,
-    points, startArrowhead: 'none', endArrowhead: type === 'arrow' ? 'arrow' : 'none' } as Element
+    points,
+    startArrowhead: type === 'arrow' ? (p.currentStartArrowhead || 'none') : 'none',
+    endArrowhead: type === 'arrow' ? (p.currentEndArrowhead || 'arrow') : 'none' } as Element
 }
 
-function makeFrameElement(x: number, y: number, w: number, h: number): Element {
+function makeFrameElement(x: number, y: number, w: number, h: number, p: any = {}): Element {
   return {
     id: generateId(),
     type: 'frame',
@@ -850,14 +879,14 @@ function makeFrameElement(x: number, y: number, w: number, h: number): Element {
     width: w,
     height: h,
     angle: 0,
-    strokeColor: '#b8b8b8',
-    backgroundColor: 'transparent',
-    fillStyle: 'solid',
-    strokeWidth: 2,
-    strokeStyle: 'solid',
-    roughness: 0,
-    opacity: 100,
-    roundness: 8,
+    strokeColor: p.currentStrokeColor || '#b8b8b8',
+    backgroundColor: p.currentBgColor || 'transparent',
+    fillStyle: p.currentFillStyle || 'solid',
+    strokeWidth: p.currentStrokeWidth || 2,
+    strokeStyle: p.currentStrokeStyle || 'solid',
+    roughness: p.currentRoughness || 0,
+    opacity: p.currentOpacity ?? 100,
+    roundness: p.currentRoundness ?? 8,
     seed: Math.random() * 100000 | 0,
     locked: false,
     groupIds: [],

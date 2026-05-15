@@ -21,6 +21,25 @@ interface AppStore extends AppState {
 }
 
 const AUTH_STORAGE_KEY = 'modraw.auth'
+const STYLE_STORAGE_KEY = 'modraw.currentStyle'
+const STYLE_KEYS = [
+  'currentItemStrokeColor',
+  'currentItemBackgroundColor',
+  'currentItemFillStyle',
+  'currentItemStrokeWidth',
+  'currentItemStrokeStyle',
+  'currentItemRoughness',
+  'currentItemOpacity',
+  'currentItemRoundness',
+  'currentItemStartArrowhead',
+  'currentItemEndArrowhead',
+  'currentItemFontSize',
+  'currentItemFontFamily',
+  'currentItemFontStyle',
+  'currentItemFontWeight',
+  'currentItemTextAlign'
+] as const
+let lastSavedStyleJson = ''
 
 function loadStoredUser(): UserProfile | null {
   try {
@@ -47,9 +66,11 @@ function saveStoredUser(user: UserProfile | null) {
 }
 
 const storedUser = loadStoredUser()
+const storedStyle = loadStoredStyle()
 
 export const useAppStore = create<AppStore>((set) => ({
   ...DEFAULT_APP_STATE,
+  ...storedStyle,
   viewMode: 'welcome',
   authMode: storedUser ? 'cloud' : 'local',
   user: storedUser,
@@ -80,3 +101,36 @@ export const useAppStore = create<AppStore>((set) => ({
   },
   resetAppState: () => set({ ...DEFAULT_APP_STATE })
 }))
+
+function loadStoredStyle(): Partial<AppState> {
+  try {
+    const raw = localStorage.getItem(STYLE_STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw) as Partial<AppState>
+    return STYLE_KEYS.reduce((style, key) => {
+      if (parsed[key] !== undefined) {
+        return { ...style, [key]: parsed[key] }
+      }
+      return style
+    }, {} as Partial<AppState>)
+  } catch {
+    return {}
+  }
+}
+
+function saveStoredStyle(state: AppState) {
+  try {
+    const style = STYLE_KEYS.reduce((next, key) => ({
+      ...next,
+      [key]: state[key]
+    }), {} as Partial<AppState>)
+    const json = JSON.stringify(style)
+    if (json === lastSavedStyleJson) return
+    lastSavedStyleJson = json
+    localStorage.setItem(STYLE_STORAGE_KEY, json)
+  } catch {
+    // Ignore unavailable storage.
+  }
+}
+
+useAppStore.subscribe(saveStoredStyle)
