@@ -7,14 +7,21 @@ import appIcon from '../../../build/icon.png'
 export function WelcomeScreen() {
   const files = useSceneStore((s) => s.files)
   const createFile = useSceneStore((s) => s.createFile)
+  const createCloudFile = useSceneStore((s) => s.createCloudFile)
   const importFile = useSceneStore((s) => s.importFile)
+  const importCloudFile = useSceneStore((s) => s.importCloudFile)
   const setActiveFile = useSceneStore((s) => s.setActiveFile)
   const deleteFile = useSceneStore((s) => s.deleteFile)
+  const authMode = useAppStore((s) => s.authMode)
   const setViewMode = useAppStore((s) => s.setViewMode)
   const t = useT()
 
-  const handleNew = () => {
-    createFile()
+  const handleNew = async () => {
+    if (authMode === 'cloud') {
+      await createCloudFile()
+    } else {
+      createFile()
+    }
     setViewMode('editor')
   }
 
@@ -26,7 +33,11 @@ export function WelcomeScreen() {
   const handleOpenMdr = async () => {
     const file = await openMdrFile(t('openFailed'))
     if (!file) return
-    importFile(file)
+    if (authMode === 'cloud') {
+      await importCloudFile(file)
+    } else {
+      importFile(file)
+    }
     setViewMode('editor')
   }
 

@@ -1,26 +1,49 @@
 import { useState } from 'react'
 import { useT } from '../i18n'
 import { useAppStore } from '../stores/app'
+import { useSceneStore } from '../stores/scene'
 
 export function AccountModePanel() {
   const authMode = useAppStore((s) => s.authMode)
   const user = useAppStore((s) => s.user)
   const login = useAppStore((s) => s.login)
+  const register = useAppStore((s) => s.register)
   const logout = useAppStore((s) => s.logout)
   const [loginOpen, setLoginOpen] = useState(false)
+  const [registerMode, setRegisterMode] = useState(false)
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [nickname, setNickname] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
   const t = useT()
   const isCloudMode = authMode === 'cloud'
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    login(email)
-    setEmail('')
-    setLoginOpen(false)
+    setBusy(true)
+    setError('')
+    try {
+      if (registerMode) {
+        await register(email, password, nickname)
+      } else {
+        await login(email, password)
+      }
+      await useSceneStore.getState().loadCloudFiles()
+      setEmail('')
+      setPassword('')
+      setNickname('')
+      setLoginOpen(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('cloudLoginFailed'))
+    } finally {
+      setBusy(false)
+    }
   }
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
+    useSceneStore.getState().loadLocalFiles()
     setLoginOpen(false)
   }
 
@@ -61,9 +84,37 @@ export function AccountModePanel() {
             autoFocus
             required
           />
-          <div className="mt-2 text-[11px] leading-4 text-[var(--color-text-muted)]">{t('loginHint')}</div>
-          <button className="btn-primary mt-3 w-full text-xs py-2" type="submit">
-            {t('login')}
+          <input
+            className="input-field mt-2 w-full"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder={t('loginPasswordPlaceholder')}
+            required
+            minLength={8}
+          />
+          {registerMode && (
+            <input
+              className="input-field mt-2 w-full"
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder={t('nicknamePlaceholder')}
+            />
+          )}
+          {error && <div className="mt-2 text-[11px] leading-4 text-[var(--color-danger)]">{error}</div>}
+          <button className="btn-primary mt-3 w-full text-xs py-2" type="submit" disabled={busy}>
+            {busy ? t('cloudWorking') : registerMode ? t('register') : t('login')}
+          </button>
+          <button
+            className="btn-ghost mt-2 w-full text-xs py-2"
+            type="button"
+            onClick={() => {
+              setRegisterMode((value) => !value)
+              setError('')
+            }}
+          >
+            {registerMode ? t('useLogin') : t('createAccount')}
           </button>
         </form>
       )}

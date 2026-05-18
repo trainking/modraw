@@ -1,5 +1,13 @@
 import { create } from 'zustand'
 import { AppState, DEFAULT_APP_STATE, ToolType, Camera, ViewMode, AuthMode, UserProfile } from '../types'
+import {
+  getCloudBaseUrl,
+  loadCloudSession,
+  loginCloud,
+  logoutCloud,
+  registerCloud,
+  saveCloudSession
+} from '../core/cloud'
 
 interface AppStore extends AppState {
   viewMode: ViewMode
@@ -15,12 +23,13 @@ interface AppStore extends AppState {
   setEditingTextElement: (id: string | null) => void
   setCurrentItemProp: <K extends keyof AppState>(key: K, value: AppState[K]) => void
   setViewMode: (mode: ViewMode) => void
-  login: (email: string) => void
-  logout: () => void
+  cloudServerUrl: string
+  login: (email: string, password: string) => Promise<void>
+  register: (email: string, password: string, nickname?: string) => Promise<void>
+  logout: () => Promise<void>
   resetAppState: () => void
 }
 
-const AUTH_STORAGE_KEY = 'modraw.auth'
 const STYLE_STORAGE_KEY = 'modraw.currentStyle'
 const STYLE_KEYS = [
   'currentItemStrokeColor',
@@ -41,39 +50,16 @@ const STYLE_KEYS = [
 ] as const
 let lastSavedStyleJson = ''
 
-function loadStoredUser(): UserProfile | null {
-  try {
-    const raw = localStorage.getItem(AUTH_STORAGE_KEY)
-    if (!raw) return null
-    const user = JSON.parse(raw) as Partial<UserProfile>
-    if (!user.email) return null
-    return {
-      id: user.id || user.email,
-      name: user.name || user.email.split('@')[0],
-      email: user.email
-    }
-  } catch {
-    return null
-  }
-}
-
-function saveStoredUser(user: UserProfile | null) {
-  if (user) {
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user))
-  } else {
-    localStorage.removeItem(AUTH_STORAGE_KEY)
-  }
-}
-
-const storedUser = loadStoredUser()
+const storedSession = loadCloudSession()
 const storedStyle = loadStoredStyle()
 
 export const useAppStore = create<AppStore>((set) => ({
   ...DEFAULT_APP_STATE,
   ...storedStyle,
   viewMode: 'welcome',
-  authMode: storedUser ? 'cloud' : 'local',
-  user: storedUser,
+  authMode: storedSession ? 'cloud' : 'local',
+  user: storedSession?.user || null,
+  cloudServerUrl: getCloudBaseUrl(),
 
   setTool: (activeTool) => set({ activeTool }),
   setToolLocked: (toolLocked) => set({ toolLocked }),
@@ -84,19 +70,21 @@ export const useAppStore = create<AppStore>((set) => ({
   setEditingTextElement: (id) => set({ editingTextElementId: id }),
   setCurrentItemProp: (key, value) => set({ [key]: value } as any),
   setViewMode: (viewMode) => set({ viewMode }),
-  login: (email) => {
+  login: async (email, password) => {
     const cleanEmail = email.trim()
-    if (!cleanEmail) return
-    const user = {
-      id: cleanEmail,
-      name: cleanEmail.split('@')[0],
-      email: cleanEmail
-    }
-    saveStoredUser(user)
-    set({ authMode: 'cloud', user })
+    if (!cleanEmail || !password) return
+    const session = await loginCloud(cleanEmail, password)
+    set({ authMode: 'cloud', user: session.user, cloudServerUrl: getCloudBaseUrl() })
   },
-  logout: () => {
-    saveStoredUser(null)
+  register: async (email, password, nickname) => {
+    const cleanEmail = email.trim()
+    if (!cleanEmail || !password) return
+    const session = await registerCloud(cleanEmail, password, nickname?.trim())
+    set({ authMode: 'cloud', user: session.user, cloudServerUrl: getCloudBaseUrl() })
+  },
+  logout: async () => {
+    await logoutCloud()
+    saveCloudSession(null)
     set({ authMode: 'local', user: null })
   },
   resetAppState: () => set({ ...DEFAULT_APP_STATE })

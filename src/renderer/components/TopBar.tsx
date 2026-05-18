@@ -22,9 +22,12 @@ export function TopBar() {
   const setCurrentItemProp = useAppStore((s) => s.setCurrentItemProp)
   const setViewMode = useAppStore((s) => s.setViewMode)
   const clearSelection = useAppStore((s) => s.clearSelection)
+  const authMode = useAppStore((s) => s.authMode)
 
   const createFile = useSceneStore((s) => s.createFile)
+  const createCloudFile = useSceneStore((s) => s.createCloudFile)
   const importFile = useSceneStore((s) => s.importFile)
+  const importCloudFile = useSceneStore((s) => s.importCloudFile)
   const setElements = useSceneStore((s) => s.setElements)
   const pushHistory = useSceneStore((s) => s.pushHistory)
   const activeFile = useSceneStore((s) => s.files.find((f) => f.id === s.activeFileId) || null)
@@ -70,9 +73,23 @@ export function TopBar() {
     const file = await openMdrFile(t('openFailed'))
     setMenuOpen(false)
     if (!file) return
-    importFile(file)
+    if (authMode === 'cloud') {
+      await importCloudFile(file)
+    } else {
+      importFile(file)
+    }
     clearSelection()
     setViewMode('editor')
+  }
+
+  const handleNewCanvas = async () => {
+    if (authMode === 'cloud') {
+      await createCloudFile()
+    } else {
+      createFile()
+    }
+    setViewMode('editor')
+    setMenuOpen(false)
   }
 
   return (
@@ -88,7 +105,7 @@ export function TopBar() {
         </div>
         {menuOpen && (
           <div className="absolute top-11 left-0 context-menu z-50">
-            <div className="context-menu-item" onClick={() => { createFile(); setViewMode('editor'); setMenuOpen(false) }}>
+            <div className="context-menu-item" onClick={handleNewCanvas}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
               {t('newCanvas')}
             </div>

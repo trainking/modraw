@@ -12,17 +12,22 @@ import { getRecentFileId } from './core/persistence'
 
 export default function App() {
   const viewMode = useAppStore((s) => s.viewMode)
+  const authMode = useAppStore((s) => s.authMode)
   const setCamera = useAppStore((s) => s.setCamera)
 
   // Restore last session
   useEffect(() => {
+    if (useAppStore.getState().authMode === 'cloud') {
+      useSceneStore.getState().loadCloudFiles().catch((error) => console.error('Failed to load cloud files', error))
+      return
+    }
     const files = useSceneStore.getState().files
     const recentId = getRecentFileId()
     if (recentId && files.find((f) => f.id === recentId)) {
       useSceneStore.getState().setActiveFile(recentId)
       useAppStore.getState().setViewMode('editor')
     }
-  }, [])
+  }, [authMode])
 
   useEffect(() => {
     const api = window.electronAPI
@@ -30,7 +35,12 @@ export default function App() {
 
     const disposers = [
       api.onMenuNew(() => {
-        useSceneStore.getState().createFile()
+        const scene = useSceneStore.getState()
+        if (useAppStore.getState().authMode === 'cloud') {
+          scene.createCloudFile().catch((error) => console.error('Failed to create cloud file', error))
+        } else {
+          scene.createFile()
+        }
         useAppStore.getState().setViewMode('editor')
       }),
       api.onMenuZoomIn(() => {
